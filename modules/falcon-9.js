@@ -12,6 +12,8 @@ export class Falcon9 {
         x: getRandomInt(-1000, 1000) / 1000,
         y: getRandomInt(0, 1000) / 1000
     },
+    rotationSpeed = getRandomInt(-100, 100) / 1000,
+    dragCoefficient = 0.05,
     thrust = 0.04,
     fireBoosterEngine = false,
     fireLeftThruster = false,
@@ -25,11 +27,13 @@ export class Falcon9 {
     this.position = position;
     this.angle = angle;
     this.velocity = velocity;
+    this.rotationSpeed = rotationSpeed;
     this.thrust = thrust;
     this.fireBoosterEngine = fireBoosterEngine;
     this.fireLeftThruster = fireLeftThruster;
     this.fireRightThruster = fireRightThruster
     this.maxLandingVelocity = maxLandingVelocity;
+    this.dragCoefficient = dragCoefficient;
 
     game.registerEntity(this);
   }
@@ -55,10 +59,20 @@ export class Falcon9 {
     const bottom = positionY === minHeight;
     
     if(this.fireRightThruster) {
-      this.angle += Math.PI / 180;
+      this.rotationSpeed += 0.01;
     } else if(this.fireLeftThruster) {
-      this.angle -= Math.PI / 180;
+      this.rotationSpeed -= 0.01;
     }
+
+    if (this.rotationSpeed > 0) {
+      this.rotationSpeed -= (this.dragCoefficient * 0.01);
+    } else {
+      this.rotationSpeed += (this.dragCoefficient * 0.01);
+    }
+
+    this.rotationSpeed += Math.sin(this.angle) * (this.game.gravity);
+
+    this.angle += (Math.PI / 180) * this.rotationSpeed;
 
     if(bottom) {
       if (this.velocity.y || this.velocity.x) {
@@ -72,6 +86,7 @@ export class Falcon9 {
 
       this.velocity.y = 0;
       this.velocity.x = 0;
+      this.rotationSpeed = 0;
     } else {
       this.velocity.y += this.game.gravity;
     }
