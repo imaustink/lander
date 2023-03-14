@@ -40,6 +40,8 @@ export class Falcon9 {
 
   landed = false;
 
+  landingVelocity = null;
+
   get distanceToBottom () {
     // Calculate the distance from the center of the object to the bottom most edge
     const shipWidthSine = Math.abs((this.width / 2) * Math.sin(this.angle));
@@ -72,9 +74,8 @@ export class Falcon9 {
     this.drawEngineFlames();
     this.game.context.restore();
     if (this.landed) {
-      const landingVelocity = this.velocity.y + this.velocity.x;
-      const winner = landingVelocity < this.maxLandingVelocity;
-      this.game.gameOver(winner, landingVelocity);
+      const winner = this.landingVelocity < this.maxLandingVelocity;
+      this.game.gameOver(winner, this.landingVelocity);
     }
   }
 
@@ -116,12 +117,14 @@ export class Falcon9 {
     this.position.y = Math.min(this.position.y + this.velocity.y, this.minHeight);
 
     if(this.bottomCollision) {
+      // Set landing details
+      this.landed = true;
+      this.landingVelocity = this.velocity.y + this.velocity.x;
+
       // Reset velocity and momentum 
       this.velocity.y = 0;
       this.velocity.x = 0;
       this.rotationalMomentum = 0;
-
-      this.landed = true;
     }
   }
 
