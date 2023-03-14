@@ -1,4 +1,5 @@
 include:
   - "node_modules/**"
+  - "node_modules/monaco-editor/min/vs/loader.js"
 title: Lunar Lander Programming Game
 description: Lunar Lander Programming Game
