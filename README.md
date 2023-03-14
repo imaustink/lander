@@ -12,8 +12,28 @@ A 2D simulation game where you program rocket boosters to land.
 
 ## Play
 
-This is a work in progress and only supports keyboard control for now.
+1. Write code
+1. Click `RUN`
 
-1. Up arrow fires booster engine
-1. Right arrow pitches right with grid fins
-1. Left arrow ptiches left with grid fins
+__Example:__
+
+```javascript
+setInterval(() => {
+  if (falcon9.angle > 0.1 && falcon9.rotationalMomentum > -0.15) {
+    falcon9.fireLeftThruster = true;
+    falcon9.fireRightThruster = false;
+  } else if (falcon9.angle < -0.1 && falcon9.rotationalMomentum < 0.15) {
+    falcon9.fireLeftThruster = false;
+    falcon9.fireRightThruster = true;
+  } else {
+    falcon9.fireLeftThruster = false;
+    falcon9.fireRightThruster = false;
+  }
+
+  if ((falcon9.velocity.y > 2) || (falcon9.velocity.y > 0.5 && falcon9.position.y > (game.canvas.height - 125))) {
+    falcon9.fireBoosterEngine = true;
+  } else {
+    falcon9.fireBoosterEngine = false;
+  }
+}, 10);
+```

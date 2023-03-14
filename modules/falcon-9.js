@@ -7,12 +7,14 @@ export class Falcon9 {
         x: game.canvas.width / 2,
         y: getRandomInt(0, game.canvas.height / 4)
     },
-    angle = getRandomInt(-1000, 1000) / 1000,
+    angle = getRandomInt(-500, 500) / 1000,
     velocity = {
         x: getRandomInt(-1000, 1000) / 1000,
         y: getRandomInt(0, 1000) / 1000
     },
-    thrust = 0.04,
+    rotationalMomentum = getRandomInt(-100, 100) / 1000,
+    dragCoefficient = 0.05,
+    thrustCoefficient = 0.04,
     fireBoosterEngine = false,
     fireLeftThruster = false,
     fireRightThruster = false,
@@ -25,46 +27,78 @@ export class Falcon9 {
     this.position = position;
     this.angle = angle;
     this.velocity = velocity;
-    this.thrust = thrust;
+    this.rotationalMomentum = rotationalMomentum;
+    this.thrustCoefficient = thrustCoefficient;
     this.fireBoosterEngine = fireBoosterEngine;
     this.fireLeftThruster = fireLeftThruster;
     this.fireRightThruster = fireRightThruster
     this.maxLandingVelocity = maxLandingVelocity;
+    this.dragCoefficient = dragCoefficient;
 
     game.registerEntity(this);
   }
 
   render () {
     this.game.context.save();
+    this.updateAngle();
+    this.updateVelocity();
     this.updatePosition();
     this.drawShipBody();
     this.drawEngineFlames();
     this.game.context.restore();
   }
 
-  updatePosition () {
-    const absoluteAngle = Math.abs(this.angle % (Math.PI * 2)) + (Math.PI / 2);
-
-    const minHeightSin = (this.width / 2) * Math.sin(this.angle < 0 && absoluteAngle < (Math.PI * 1.5) ? this.angle : -this.angle);
-    const minHeightCos = (this.height / 2) * Math.cos(this.angle);
-    const minHeight = absoluteAngle < Math.PI || absoluteAngle > (Math.PI * 2) ?
-      this.game.canvas.height - minHeightCos + minHeightSin:
-      this.game.canvas.height + minHeightCos + minHeightSin;
-    const positionX = this.position.x + this.velocity.x;
-    const positionY = Math.min(this.position.y + this.velocity.y, minHeight);
-    const bottom = positionY === minHeight;
-    
+  updateAngle() {
+    // Increase rotational momentum when thrusters are fired
     if(this.fireRightThruster) {
-      this.angle += Math.PI / 180;
+      this.rotationalMomentum += 0.01;
     } else if(this.fireLeftThruster) {
-      this.angle -= Math.PI / 180;
+      this.rotationalMomentum -= 0.01;
     }
 
-    if(bottom) {
+    // Increase rotational momentum based on gravity using sine of the angle as the coefficient
+    this.rotationalMomentum += 0.75 * (Math.sin(this.angle) * (this.game.gravity));
+
+    // Reduce rotational momentum based on drag coefficient
+    if (this.rotationalMomentum > 0) {
+      this.rotationalMomentum -= (this.dragCoefficient * 0.01);
+    } else {
+      this.rotationalMomentum += (this.dragCoefficient * 0.01);
+    }
+    // Change angle based on rotational momentum
+    this.angle += (Math.PI / 180) * this.rotationalMomentum;
+  }
+
+  updateVelocity () {
+    // Calculate gravity
+    this.velocity.y += this.game.gravity;
+
+    // Calculate velocity based on sin of the angle and using thrust as a coefficient
+    if(this.fireBoosterEngine) {
+      this.velocity.x += this.thrustCoefficient * Math.sin(this.angle);
+      this.velocity.y -= this.thrustCoefficient * Math.cos(this.angle);
+    }
+  }
+
+  updatePosition () {
+    // Calculate the distance from the center of the object to the bottom most corner
+    const shipWidthSine = Math.abs((this.width / 2) * Math.sin(this.angle));
+    // Calculate the distance from the center of the object to the right most corner
+    const shipHeightCosine = Math.abs((this.height / 2) * Math.cos(this.angle));
+    // Calculate the bottom edge
+    const minHeight = this.game.canvas.height - (shipWidthSine + shipHeightCosine);
+    
+    // Update position
+    this.position.x = this.position.x + this.velocity.x;
+    this.position.y = Math.min(this.position.y + this.velocity.y, minHeight);
+
+    // Calculate collisions with bottom of canvas
+    const bottomCollision = this.position.y === minHeight;
+
+    if(bottomCollision) {
       if (this.velocity.y || this.velocity.x) {
         const combinedVelocity = this.velocity.y + this.velocity.x;
         console.log("landing velocity", combinedVelocity);
-        console.log("landing angle", absoluteAngle);
         const won = combinedVelocity < this.maxLandingVelocity;
         const velocityMessage = ` Your landing velocity was ${combinedVelocity.toFixed(2)} and the max is ${this.maxLandingVelocity}.`
         this.game.gameOver(`You ${won ? "won" : "lost"}!${!won ? velocityMessage : ""}`);
@@ -72,15 +106,8 @@ export class Falcon9 {
 
       this.velocity.y = 0;
       this.velocity.x = 0;
-    } else {
-      this.velocity.y += this.game.gravity;
+      this.rotationalMomentum = 0;
     }
-    if(this.fireBoosterEngine) {
-      this.velocity.x -= this.thrust * Math.sin(-this.angle);
-      this.velocity.y -= this.thrust * Math.cos(this.angle);
-    }
-    this.position.x = positionX;
-    this.position.y = positionY;
   }
 
   drawShipBody () {
