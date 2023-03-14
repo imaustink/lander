@@ -30,9 +30,10 @@ export class GameEngine {
     this.stopped = true;
   }
 
-  gameOver(winner, landingVelocity) {
+  gameOver(landingVelocity, maxLandingVelocity) {
+    const winner = landingVelocity < maxLandingVelocity;
     const message = winner ? "You won!" :
-    `You lost! Your landing velocity was ${landingVelocity.toFixed(2)} and the max is ${this.maxLandingVelocity}.`;
+    `You lost! Your landing velocity was ${landingVelocity.toFixed(2)} and the max is ${maxLandingVelocity}.`;
     alert(message);
     this.stop();
   }

@@ -74,8 +74,7 @@ export class Falcon9 {
     this.drawEngineFlames();
     this.game.context.restore();
     if (this.landed) {
-      const winner = this.landingVelocity < this.maxLandingVelocity;
-      this.game.gameOver(winner, this.landingVelocity);
+      this.game.gameOver(this.landingVelocity, this.maxLandingVelocity);
     }
   }
 
