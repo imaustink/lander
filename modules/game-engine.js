@@ -34,7 +34,6 @@ export class GameEngine {
   gameOver(message) {
     alert(message);
     this.stop();
-    window.location.reload();
   }
 
   registerEntity(entity) {
