@@ -2,7 +2,7 @@
 
 A 2D simulation game where you program rocket boosters to land.
 
-![Mar-10-2023 07-06-40](https://user-images.githubusercontent.com/6282922/224355160-0d65f99d-0da9-4f96-9276-94690da5b6ba.gif)
+![Mar-10-2023 07-06-40](./gameplay.gif)
 
 ## Develop
 
@@ -30,7 +30,7 @@ setInterval(() => {
     falcon9.fireRightThruster = false;
   }
 
-  if ((falcon9.velocity.y > 2) || (falcon9.velocity.y > 0.5 && falcon9.position.y > (game.canvas.height - 125))) {
+  if ((falcon9.velocity.y > 2) || (falcon9.velocity.y > 0.5 && falcon9.altitude < 125)) {
     falcon9.fireBoosterEngine = true;
   } else {
     falcon9.fireBoosterEngine = false;

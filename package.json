@@ -10,6 +10,7 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "monaco-editor": "^0.36.1",
     "serve": "^14.2.0"
   }
 }
