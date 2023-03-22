@@ -1,5 +1,5 @@
-const keyboardControlExample = `
-document.addEventListener('keydown', event => {
+const keyboardControlExample = `document.addEventListener('keydown', event => {
+  event.preventDefault();
   switch(event.key) {
     case "ArrowLeft":
       // Left Arrow key
@@ -16,6 +16,7 @@ document.addEventListener('keydown', event => {
   }
 });
 document.addEventListener('keyup', event => {
+  event.preventDefault();
   switch(event.key) {
     case "ArrowLeft":
       // Left Arrow key
@@ -30,8 +31,7 @@ document.addEventListener('keyup', event => {
       falcon9.fireBoosterEngine = false;
       break;
   }
-});
-`;
+});`;
 
 const gameContainer = document.getElementById("game-container");
 const run = document.getElementById("run");
@@ -50,7 +50,7 @@ require(['vs/editor/editor.main'], function () {
     window.localStorage.setItem("code", code);
     gameContainer.innerHTML = "";
     const iframe = document.createElement("iframe");
-    iframe.src = "./src/frames/game.html";
+    iframe.src = "./frames/game.html";
     iframe.height = "100%";
     iframe.width = "100%";
     const script = document.createElement("script");

@@ -6,8 +6,8 @@ export class GameEngine {
     this.canvas = document.getElementById(canvasId);
     this.context = this.canvas.getContext("2d");
 
-    this.canvas.width = window.innerWidth;
-    this.canvas.height = window.innerHeight;
+    this.canvas.width = document.body.clientWidth;
+    this.canvas.height = document.body.clientHeight;
   }
 
   start() {
