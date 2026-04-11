@@ -1,6 +1,6 @@
 export class Falcon9 {
   constructor(game, {
-    color = "black",
+    color = "white",
     width = 14,
     height = 72,
     position = {

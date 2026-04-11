@@ -16,7 +16,8 @@ export class GameEngine {
       return;
     };
     // Clear entire screen
-    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    this.context.fillStyle = "#010409";
+    this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Render entities
     this.entities.forEach(entity => {

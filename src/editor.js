@@ -34,6 +34,8 @@ document.addEventListener('keyup', event => {
 });`;
 
 const gameContainer = document.getElementById("game-container");
+const gamePlaceholder = document.getElementById("game-placeholder");
+const gameDot = document.getElementById("game-dot");
 const run = document.getElementById("run");
 
 require.config({ paths: { vs: '../node_modules/monaco-editor/min/vs' } });
@@ -42,13 +44,25 @@ require(['vs/editor/editor.main'], function () {
   const editor = monaco.editor.create(document.getElementById('editor'), {
     value: window.localStorage.getItem("code") || keyboardControlExample,
     language: 'javascript',
+    theme: 'vs-dark',
     minimap: { enabled: false },
+    automaticLayout: true,
+    fontSize: 13,
+    lineHeight: 21,
+    padding: { top: 12 },
+    scrollBeyondLastLine: false,
+    renderLineHighlight: 'gutter',
   });
 
   run.addEventListener("click", () => {
     const code = editor.getValue();
     window.localStorage.setItem("code", code);
-    gameContainer.innerHTML = "";
+
+    // Clear previous game iframe (keep placeholder in DOM)
+    Array.from(gameContainer.children).forEach(child => {
+      if (child.tagName === 'IFRAME') child.remove();
+    });
+
     const iframe = document.createElement("iframe");
     iframe.src = "./frames/game.html";
     iframe.height = "100%";
@@ -59,7 +73,9 @@ require(['vs/editor/editor.main'], function () {
       iframe.contentDocument.head.appendChild(script);
       iframe.contentWindow.game.start();
       iframe.contentWindow.focus();
-    }
+      gamePlaceholder.style.opacity = "0";
+      gameDot.classList.add("active");
+    };
     gameContainer.appendChild(iframe);
   });
 });
