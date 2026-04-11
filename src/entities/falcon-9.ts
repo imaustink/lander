@@ -2,6 +2,14 @@ import type { Entity } from "../engine/entity.js";
 import type { GameEngine } from "../engine/game-engine.js";
 import { Vector2 } from "../engine/vector2.js";
 import { getRandomInt } from "../engine/utils.js";
+import {
+  distanceToBottom,
+  resolveBoosterSealed,
+  consumeFuel,
+  stepAngle,
+  stepVelocity,
+  stepPosition,
+} from "../engine/physics.js";
 
 interface Falcon9Options {
   color?: string;
@@ -75,6 +83,7 @@ export class Falcon9 implements Entity {
 
     // Apply optional level spawn overrides
     if (level.initialAngle !== undefined) this.angle = level.initialAngle;
+    if (level.initialSpin  !== undefined) this.rotationalMomentum = level.initialSpin;
     if (level.initialVelocity !== undefined) {
       this.velocity = new Vector2(
         level.initialVelocity.x ?? this.velocity.x,
@@ -94,9 +103,7 @@ export class Falcon9 implements Entity {
   // ── Geometry helpers ─────────────────────────────────────────────────────
 
   private get _distanceToBottom(): number {
-    const widthSine = Math.abs((this.width / 2) * Math.sin(this.angle));
-    const heightCosine = Math.abs((this.height / 2) * Math.cos(this.angle));
-    return widthSine + heightCosine;
+    return distanceToBottom(this.angle, this.width, this.height);
   }
 
   private _minHeight(canvasHeight: number): number {
@@ -117,9 +124,12 @@ export class Falcon9 implements Entity {
     const hasFuel = this.fuelRemaining > 0;
 
     // Resolve booster sealed state
-    if (!this.canReignite && this._boosterEverFired && !this.fireBoosterEngine) {
-      this._boosterSealed = true;
-    }
+    this._boosterSealed = resolveBoosterSealed(
+      this.canReignite,
+      this._boosterEverFired,
+      this.fireBoosterEngine,
+      this._boosterSealed,
+    );
 
     const boosterActive = this.fireBoosterEngine && hasFuel && !this._boosterSealed;
     const leftActive = this.fireLeftThruster && hasFuel;
@@ -129,16 +139,11 @@ export class Falcon9 implements Entity {
 
     // Consume fuel
     if (hasFuel) {
-      let activeThrusterCount = 0;
-      if (boosterActive) activeThrusterCount++;
-      if (leftActive) activeThrusterCount++;
-      if (rightActive) activeThrusterCount++;
-      if (activeThrusterCount > 0) {
-        this.fuelRemaining = Math.max(
-          0,
-          this.fuelRemaining - this._fuelConsumptionRate * activeThrusterCount * dt,
-        );
-      }
+      const activeThrusterCount =
+        (boosterActive ? 1 : 0) + (leftActive ? 1 : 0) + (rightActive ? 1 : 0);
+      this.fuelRemaining = consumeFuel(
+        this.fuelRemaining, this._fuelConsumptionRate, activeThrusterCount, dt,
+      );
     }
 
     this._updateAngle(t, leftActive, rightActive, level.gravity);
@@ -147,43 +152,29 @@ export class Falcon9 implements Entity {
   }
 
   private _updateAngle(t: number, leftActive: boolean, rightActive: boolean, gravity: number): void {
-    if (rightActive) {
-      this.rotationalMomentum += 0.01 * t;
-    } else if (leftActive) {
-      this.rotationalMomentum -= 0.01 * t;
-    }
-
-    // Gravity torque (pendulum effect)
-    this.rotationalMomentum += 0.75 * Math.sin(this.angle) * gravity * t;
-
-    // Angular drag
-    const drag = this.dragCoefficient * 0.01 * t;
-    if (this.rotationalMomentum > 0) {
-      this.rotationalMomentum -= drag;
-    } else {
-      this.rotationalMomentum += drag;
-    }
-
-    this.angle += (Math.PI / 180) * this.rotationalMomentum;
+    ({ angle: this.angle, rotMomentum: this.rotationalMomentum } = stepAngle(
+      this.angle, this.rotationalMomentum, t, leftActive, rightActive, gravity, this.dragCoefficient,
+    ));
   }
 
   private _updateVelocity(t: number, boosterActive: boolean, gravity: number, thrustPower: number): void {
-    this.velocity.y += gravity * t;
-
-    if (boosterActive) {
-      this.velocity.x += thrustPower * Math.sin(this.angle) * t;
-      this.velocity.y -= thrustPower * Math.cos(this.angle) * t;
-    }
+    ({ velX: this.velocity.x, velY: this.velocity.y } = stepVelocity(
+      this.velocity.x, this.velocity.y, this.angle, t, boosterActive, gravity, thrustPower,
+    ));
   }
 
   private _updatePosition(t: number, game: GameEngine): void {
-    const minH = this._minHeight(game.canvas.height);
-    this.position.x += this.velocity.x * t;
-    this.position.y = Math.min(this.position.y + this.velocity.y * t, minH);
+    const pos = stepPosition(
+      this.position.x, this.position.y,
+      this.velocity.x, this.velocity.y,
+      this.angle, t, game.canvas.height, this.width, this.height,
+    );
+    this.position.x = pos.posX;
+    this.position.y = pos.posY;
 
-    if (this.position.y >= minH) {
+    if (pos.landed) {
       this.landed = true;
-      this.landingVelocity = Math.abs(this.velocity.y) + Math.abs(this.velocity.x);
+      this.landingVelocity = pos.landingVelocity;
       this.velocity.x = 0;
       this.velocity.y = 0;
       this.rotationalMomentum = 0;
@@ -197,9 +188,9 @@ export class Falcon9 implements Entity {
           return this.position.x >= centerX - half && this.position.x <= centerX + half;
         })();
 
-      const won = this.landingVelocity < this.maxLandingVelocity && onPad;
+      const won = this.landingVelocity! < this.maxLandingVelocity && onPad;
       game.onEnd?.(won, {
-        velocity: this.landingVelocity,
+        velocity: this.landingVelocity!,
         max: this.maxLandingVelocity,
         levelIndex: game.levels.index,
         onPad,
@@ -222,25 +213,174 @@ export class Falcon9 implements Entity {
   }
 
   private _drawShipBody(ctx: CanvasRenderingContext2D): void {
-    ctx.beginPath();
+    const w = this.width;
+    const h = this.height;
+    const hw = w / 2;  // half-width
+    const hh = h / 2; // half-height (top = -hh, bottom = +hh)
+
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.angle);
-    ctx.rect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+    // ── Nose cone ────────────────────────────────────────────────────────────
+    // Pointed tip at top, fans out to stage-2 width
+    const s2Half = hw * 0.52; // stage-2 half-width
+    const noseBase = -hh + h * 0.12; // y where nose meets stage 2
+    ctx.beginPath();
+    ctx.moveTo(0, -hh);           // tip
+    ctx.lineTo(s2Half, noseBase);
+    ctx.lineTo(-s2Half, noseBase);
+    ctx.closePath();
     ctx.fillStyle = this.color;
     ctx.fill();
+
+    // ── Stage 2 ───────────────────────────────────────────────────────────────
+    const s2Top = noseBase;
+    const s2Bot = -hh + h * 0.32;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-s2Half, s2Top, s2Half * 2, s2Bot - s2Top);
+
+    // ── Interstage band ───────────────────────────────────────────────────────
+    const bandH = 4;
+    const bandTop = s2Bot;
+    ctx.fillStyle = "#555";
+    ctx.fillRect(-hw, bandTop, w, bandH);
+
+    // ── Stage 1 body ─────────────────────────────────────────────────────────
+    const s1Top = bandTop + bandH;
+    const octawebH = 5;
+    const s1Bot = hh - octawebH;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-hw, s1Top, w, s1Bot - s1Top);
+
+    // SPACEX text on stage 1
+    const labelY = s1Top + (s1Bot - s1Top) * 0.45;
+    ctx.save();
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    ctx.font = `bold ${Math.max(4, w * 0.45)}px 'Arial Narrow', Arial, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("SPACEX", -labelY, 0);
+    ctx.restore();
+
+    // ── Grid fins (just below interstage, top of stage 1) ───────────────────
+    const finW = w * 0.6;
+    const finH = 3.5;
+    const finY = s1Top + 3;
+    ctx.fillStyle = "#888";
+    // Left fin
+    ctx.fillRect(-hw - finW + 1, finY, finW, finH);
+    // Right fin
+    ctx.fillRect(hw - 1, finY, finW, finH);
+    // Thin strut connecting fin to body
+    ctx.fillStyle = "#666";
+    ctx.fillRect(-hw - 1, finY, 2, finH);
+    ctx.fillRect(hw - 1, finY, 2, finH);
+
+    // ── Octaweb base (engine section) ────────────────────────────────────────
+    ctx.fillStyle = "#444";
+    ctx.fillRect(-hw - 1.5, s1Bot, w + 3, octawebH);
+
+    // ── Landing legs ─────────────────────────────────────────────────────────
+    const legTopY = s1Bot - h * 0.18; // attach point on stage 1
+    const legBotY = hh + 2;           // foot lands slightly below body bottom
+    const legSpreadX = hw * 3.2;      // how far out the foot extends
+    ctx.strokeStyle = "#ccc";
+    ctx.lineWidth = 1.2;
+    // Main strut
+    ctx.beginPath();
+    ctx.moveTo(-hw * 0.7, legTopY);
+    ctx.lineTo(-legSpreadX, legBotY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hw * 0.7, legTopY);
+    ctx.lineTo(legSpreadX, legBotY);
+    ctx.stroke();
+    // Diagonal brace
+    ctx.lineWidth = 0.8;
+    ctx.strokeStyle = "#aaa";
+    ctx.beginPath();
+    ctx.moveTo(-hw, legTopY + h * 0.06);
+    ctx.lineTo(-legSpreadX, legBotY);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hw, legTopY + h * 0.06);
+    ctx.lineTo(legSpreadX, legBotY);
+    ctx.stroke();
+
+    // ── Engine nozzle bell ───────────────────────────────────────────────────
+    const nozzleTopW = hw * 0.55;
+    const nozzleBotW = hw * 0.85;
+    const nozzleTop = hh;
+    const nozzleBot = hh + 7;
+    ctx.fillStyle = "#333";
+    ctx.beginPath();
+    ctx.moveTo(-nozzleTopW, nozzleTop);
+    ctx.lineTo(nozzleTopW, nozzleTop);
+    ctx.lineTo(nozzleBotW, nozzleBot);
+    ctx.lineTo(-nozzleBotW, nozzleBot);
     ctx.closePath();
+    ctx.fill();
+    // nozzle inner highlight
+    ctx.fillStyle = "#222";
+    ctx.beginPath();
+    ctx.moveTo(-nozzleTopW * 0.6, nozzleTop);
+    ctx.lineTo(nozzleTopW * 0.6, nozzleTop);
+    ctx.lineTo(nozzleBotW * 0.6, nozzleBot);
+    ctx.lineTo(-nozzleBotW * 0.6, nozzleBot);
+    ctx.closePath();
+    ctx.fill();
   }
 
   private _drawEngineFlames(ctx: CanvasRenderingContext2D, game: GameEngine): void {
     if (!this.fireBoosterEngine || this._boosterSealed || this.fuelRemaining <= 0) return;
     const thrustPower = game.levels.current.minThrottle ?? this.enginePower;
+    const scale = thrustPower / 0.04;
+    // Flame origin: base of nozzle bell
+    const nozzleBotW = (this.width / 2) * 0.85;
+    const flameOriginY = this.height / 2 + 7;
+    const flameLen = 14 + Math.random() * 20 * scale;
+    const flickerX = (Math.random() - 0.5) * 4;
+
+    // Outer plume (orange)
     ctx.beginPath();
-    ctx.moveTo(-this.width / 2, this.height / 2);
-    ctx.lineTo(this.width / 2, this.height / 2);
-    ctx.lineTo(0, this.height / 2 + Math.random() * 10 * (thrustPower / 0.04));
-    ctx.lineTo(-this.width / 2, this.height / 2);
+    ctx.moveTo(-nozzleBotW, flameOriginY);
+    ctx.lineTo(nozzleBotW, flameOriginY);
+    ctx.quadraticCurveTo(
+      flickerX + (Math.random() - 0.5) * 6,
+      flameOriginY + flameLen * 0.7,
+      flickerX,
+      flameOriginY + flameLen,
+    );
     ctx.closePath();
-    ctx.fillStyle = "orange";
+    ctx.fillStyle = "rgba(255, 140, 0, 0.9)";
+    ctx.fill();
+
+    // Mid plume (yellow)
+    const midW = nozzleBotW * 0.55;
+    const midLen = flameLen * 0.72;
+    ctx.beginPath();
+    ctx.moveTo(-midW, flameOriginY);
+    ctx.lineTo(midW, flameOriginY);
+    ctx.quadraticCurveTo(
+      flickerX * 0.5,
+      flameOriginY + midLen * 0.6,
+      flickerX * 0.5,
+      flameOriginY + midLen,
+    );
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 230, 80, 0.95)";
+    ctx.fill();
+
+    // Inner core (bright white)
+    const coreW = nozzleBotW * 0.28;
+    const coreLen = flameLen * 0.42;
+    ctx.beginPath();
+    ctx.moveTo(-coreW, flameOriginY);
+    ctx.lineTo(coreW, flameOriginY);
+    ctx.lineTo(0, flameOriginY + coreLen);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 255, 240, 1)";
     ctx.fill();
   }
 

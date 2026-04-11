@@ -1,137 +1,15 @@
 import { GameEngine } from "./engine/game-engine.js";
 import { Falcon9 } from "./entities/falcon-9.js";
 import type { LevelConfig } from "./engine/level.js";
+import { LEVELS } from "./levels.js";
 
 const game = new GameEngine("game");
 
 // ── Level definitions ───────────────────────────────────────────────────────
 
-game.levels
-  // 1 — "Hello, Moon": nearly upright, barely moving; learn the three controls
-  .define({
-    id: "Hello, Moon",
-    gravity: 0.004,
-    fuel: Infinity,
-    fuelConsumptionRate: 0,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 3.0,
-    initialAngle: 0.08,
-    initialVelocity: { x: 0.05, y: 0.1 },
-  })
-  // 2 — "Tilted": noticeable tilt; learn that thrusters control rotation
-  .define({
-    id: "Tilted",
-    gravity: 0.008,
-    fuel: Infinity,
-    fuelConsumptionRate: 0,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 2.0,
-    initialAngle: 0.4,
-    initialVelocity: { x: 0.2, y: 0.2 },
-  })
-  // 3 — "Steady the Ship": random tilt + meaningful downward velocity
-  .define({
-    id: "Steady the Ship",
-    gravity: 0.010,
-    fuel: Infinity,
-    fuelConsumptionRate: 0,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 1.5,
-    initialVelocity: { y: 0.6 },
-  })
-  // 4 — "Lateral Drift": high horizontal velocity; learn angle-as-vector-control
-  .define({
-    id: "Lateral Drift",
-    gravity: 0.010,
-    fuel: Infinity,
-    fuelConsumptionRate: 0,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 1.0,
-    initialVelocity: { x: 1.0, y: 0.3 },
-  })
-  // 5 — "Bullseye": first landing pad; position management required
-  .define({
-    id: "Bullseye",
-    gravity: 0.010,
-    fuel: Infinity,
-    fuelConsumptionRate: 0,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 1.0,
-    landingPad: { width: 80 },
-    initialVelocity: { x: 0.6, y: 0.3 },
-  })
-  // 6 — "On a Budget": fuel system introduced; encourage efficient control loops
-  .define({
-    id: "On a Budget",
-    gravity: 0.010,
-    fuel: 500,
-    fuelConsumptionRate: 0.05,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 1.0,
-    landingPad: { width: 80 },
-  })
-  // 7 — "Minimum Power": minThrottle = 1.5× normal; must pulse, can't feather
-  .define({
-    id: "Minimum Power",
-    gravity: 0.010,
-    fuel: 350,
-    fuelConsumptionRate: 0.06,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 0.9,
-    landingPad: { width: 60 },
-    minThrottle: 0.06,
-  })
-  // 8 — "Precision Burn": narrow pad, scarce fuel, faster approach
-  .define({
-    id: "Precision Burn",
-    gravity: 0.010,
-    fuel: 250,
-    fuelConsumptionRate: 0.07,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 0.8,
-    landingPad: { width: 40 },
-    minThrottle: 0.06,
-    initialVelocity: { y: 1.2 },
-  })
-  // 9 — "The Long Fall": high-altitude drop, very scarce fuel; must plan burn windows
-  .define({
-    id: "The Long Fall",
-    gravity: 0.010,
-    fuel: 200,
-    fuelConsumptionRate: 0.08,
-    enginePower: 0.04,
-    canReignite: true,
-    maxLandingVelocity: 0.7,
-    landingPad: { width: 40 },
-    minThrottle: 0.08,
-    initialPosition: { y: 40 },
-    initialVelocity: { x: 0, y: 2.0 },
-  })
-  // 10 — "Hoverslam": full-power-only engine; one precisely timed suicide burn
-  //   net decel while burning = minThrottle(0.10) − gravity(0.01) = 0.09 px/frame²
-  //   stopping from v=3.0 takes ~33 frames and covers ~50px
-  //   hint: monitor falcon9.altitude and falcon9.velocity.y to compute ignition point
-  .define({
-    id: "Hoverslam",
-    gravity: 0.010,
-    fuel: 120,
-    fuelConsumptionRate: 0.10,
-    enginePower: 0.10,
-    canReignite: true,
-    maxLandingVelocity: 0.5,
-    landingPad: { width: 40 },
-    minThrottle: 0.10,
-    initialPosition: { y: 40 },
-    initialVelocity: { x: 0, y: 3.0 },
-  });
+for (const { config } of LEVELS) {
+  game.levels.define(config);
+}
 
 // ── Level load handler ──────────────────────────────────────────────────────
 
@@ -235,17 +113,16 @@ function showOverlay(
 interface GameWindow extends Window {
   game: GameEngine;
   falcon9: Falcon9;
+  __startLevel?: number;
 }
 
 (window as unknown as GameWindow).game = game;
 
-// Kick off level 1; editor.ts calls game.start() after iframe load,
-// but loadLevel triggers onLevelLoad which calls start() — so we delay
-// the initial load until the editor signals readiness via game.start().
-// We override start() once to intercept the first call from editor.ts
-// and convert it into a loadLevel(0).
+// Intercept the first game.start() from editor.ts and convert it into
+// a loadLevel() targeting the level the editor injected via __startLevel.
 const _originalStart = game.start.bind(game);
 game.start = () => {
-  game.start = _originalStart; // restore immediately
-  game.loadLevel(0);          // this calls onLevelLoad → new Falcon9 → _originalStart
+  game.start = _originalStart;
+  const startIndex = (window as unknown as GameWindow).__startLevel ?? 0;
+  game.loadLevel(startIndex);
 };

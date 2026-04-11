@@ -6,7 +6,9 @@
     "dev": "vite --port 3000",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "MIT",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "typescript": "^5.4.5",
-    "vite": "^5.2.11"
+    "vite": "^5.2.11",
+    "vitest": "^4.1.4"
   }
 }

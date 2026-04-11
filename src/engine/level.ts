@@ -19,6 +19,7 @@ export interface LevelConfig {
   minThrottle?: number;
   /** Optional spawn overrides — undefined fields default to random */
   initialAngle?: number;
+  initialSpin?: number;
   initialVelocity?: { x?: number; y?: number };
   initialPosition?: { x?: number; y?: number };
 }
