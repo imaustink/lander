@@ -8,4 +8,4 @@ RUN npm i
 
 EXPOSE 3000
 
-ENTRYPOINT npm start
+ENTRYPOINT npm run dev -- --host

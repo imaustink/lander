@@ -10,5 +10,5 @@ services:
     volumes:
       - .:/opt/lander
     restart: always
-    command: npm start
+    command: npm run dev -- --host
 
