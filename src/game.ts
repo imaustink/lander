@@ -1,5 +1,7 @@
 import { GameEngine } from "./engine/game-engine.js";
 import { Falcon9 } from "./entities/falcon-9.js";
+import { Starfield } from "./entities/starfield.js";
+import { MoonSurface } from "./entities/moon-surface.js";
 import type { LevelConfig } from "./engine/level.js";
 import { LEVELS } from "./levels.js";
 
@@ -16,6 +18,8 @@ for (const { config } of LEVELS) {
 let falcon9: Falcon9;
 
 game.onLevelLoad = (_level: LevelConfig, _index: number) => {
+  new Starfield(game);
+  new MoonSurface(game);
   falcon9 = new Falcon9(game);
   // Expose updated reference to user code
   (window as unknown as GameWindow).falcon9 = falcon9;

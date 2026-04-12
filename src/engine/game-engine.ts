@@ -16,6 +16,13 @@ export class GameEngine {
   readonly levels = new LevelManager();
   readonly input: InputManager;
 
+  /** Current horizontal scroll offset (world units). Increases as camera pans right. */
+  cameraX: number = 0;
+  /** Entity whose position drives the horizontal camera scroll. */
+  cameraTarget: { position: { x: number } } | null = null;
+  /** Y coordinate of the ground plane (world units). Defaults to canvas.height; surface entities may raise it. */
+  groundY: number = 0;
+
   onLevelLoad?: (level: LevelConfig, index: number) => void;
   onEnd?: (won: boolean, details: { velocity: number; max: number; levelIndex: number; onPad: boolean }) => void;
 
@@ -36,6 +43,7 @@ export class GameEngine {
     const parent = this.canvas.parentElement ?? document.body;
     this.canvas.width = parent.clientWidth;
     this.canvas.height = parent.clientHeight;
+    this.groundY = this.canvas.height;
   }
 
   // ── Loop control ──────────────────────────────────────────────────────────
@@ -72,13 +80,27 @@ export class GameEngine {
       : 0;
     this._lastTimestamp = timestamp;
 
+    // ── Horizontal camera scroll (dead zone) ─────────────────────────────────
+    if (this.cameraTarget !== null) {
+      const screenX = this.cameraTarget.position.x - this.cameraX;
+      const deadLeft  = this.canvas.width * 0.3;
+      const deadRight = this.canvas.width * 0.7;
+      if (screenX < deadLeft)  this.cameraX = this.cameraTarget.position.x - deadLeft;
+      if (screenX > deadRight) this.cameraX = this.cameraTarget.position.x - deadRight;
+    }
+
     this._ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (const entity of this._entities) {
       entity.update(dt, this);
     }
+
+    // Apply camera transform for all world-space rendering
+    this._ctx.save();
+    this._ctx.translate(-this.cameraX, 0);
     for (const entity of this._entities) {
       entity.render(this._ctx, this);
     }
+    this._ctx.restore();
 
     this._rafId = requestAnimationFrame((ts) => this._tick(ts));
   }
@@ -104,6 +126,8 @@ export class GameEngine {
   loadLevel(index: number): void {
     this.pause();
     this.clearEntities();
+    this.cameraX = 0;
+    this.cameraTarget = null;
     const level = this.levels.load(index);
     this.onLevelLoad?.(level, index);
   }

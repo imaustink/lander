@@ -572,7 +572,7 @@ setInterval(() => {
     config: {
       id: "Hoverslam",
       gravity: 0.010,
-      fuel: 120,
+      fuel: 200,
       fuelConsumptionRate: 0.10,
       enginePower: 0.10,
       canReignite: true,
@@ -583,7 +583,6 @@ setInterval(() => {
       initialSpin: 0.25,
       initialPosition: { y: 40 },
       initialVelocity: { x: 0.05, y: 3.0 },
-      fuel: 300,
     },
     starter: `\
 // Level 10 — Hoverslam

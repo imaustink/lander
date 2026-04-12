@@ -98,20 +98,33 @@ export class Falcon9 implements Entity {
     }
 
     game.addEntity(this);
+    game.cameraTarget = this;
+  }
+
+  destroy(): void {
+    if (this._game.cameraTarget === this) {
+      this._game.cameraTarget = null;
+    }
   }
 
   // ── Geometry helpers ─────────────────────────────────────────────────────
 
-  private get _distanceToBottom(): number {
-    return distanceToBottom(this.angle, this.width, this.height);
+  // The nozzle bell extends 7px below the ship body (hh → hh+7).
+  // Adding 14 to height makes distanceToBottom() reach the nozzle tip.
+  private get _effectiveHeight(): number {
+    return this.height + 14;
   }
 
-  private _minHeight(canvasHeight: number): number {
-    return canvasHeight - this._distanceToBottom;
+  private get _distanceToBottom(): number {
+    return distanceToBottom(this.angle, this.width, this._effectiveHeight);
+  }
+
+  private _minHeight(groundY: number): number {
+    return groundY - this._distanceToBottom;
   }
 
   get altitude(): number {
-    return this._minHeight(this._game.canvas.height) - this.position.y;
+    return this._minHeight(this._game.groundY) - this.position.y;
   }
 
   // ── Entity lifecycle ─────────────────────────────────────────────────────
@@ -167,7 +180,7 @@ export class Falcon9 implements Entity {
     const pos = stepPosition(
       this.position.x, this.position.y,
       this.velocity.x, this.velocity.y,
-      this.angle, t, game.canvas.height, this.width, this.height,
+      this.angle, t, game.groundY, this.width, this._effectiveHeight,
     );
     this.position.x = pos.posX;
     this.position.y = pos.posY;
@@ -414,6 +427,8 @@ export class Falcon9 implements Entity {
     const r = barH / 2;
 
     ctx.save();
+    // Reset to screen-space so HUD stays fixed regardless of camera offset
+    ctx.resetTransform();
 
     // Label
     ctx.fillStyle = "#8b949e";
