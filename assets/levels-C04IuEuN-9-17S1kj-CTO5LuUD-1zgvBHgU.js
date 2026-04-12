@@ -1,43 +1,7 @@
-import type { LevelConfig } from "./engine/level.js";
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Level data: config + per-level starter code + reference solution
-//
-// The `starter` string is what appears in the editor when a player first loads
-// a level. It provides just enough scaffolding to understand the API without
-// giving the answer away.
-//
-// The `solution` string is the reference algorithm that solves the level. It
-// is both shown to the player via "Show Solution" and run by the test suite.
-// ─────────────────────────────────────────────────────────────────────────────
-
-export interface LevelData {
-  config: LevelConfig;
-  /** Scaffolded starting code shown in editor when the level is first loaded */
-  starter: string;
-  /** Reference solution — shown on demand and verified by the test suite */
-  solution: string;
-}
-
-export const LEVELS: LevelData[] = [
-  // ── Level 1 — "Hello, Moon" ───────────────────────────────────────────────
-  {
-    config: {
-      id: "Hello, Moon",
-      gravity: 0.004,
-      fuel: Infinity,
-      fuelConsumptionRate: 0,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 3.0,
-      initialAngle: 0,
-      initialVelocity: { x: 0.05, y: 1.5 },
-    },
-    starter: `\
-// Level 1 — Hello, Moon
-// The ship starts nearly upright and falling at moderate speed.
-// Your goal: slow down before you hit the surface.
-// Try firing the booster engine to control your descent.
+(function(){const i=document.createElement("link").relList;if(i&&i.supports&&i.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))t(e);new MutationObserver(e=>{for(const n of e)if(n.type==="childList")for(const r of n.addedNodes)r.tagName==="LINK"&&r.rel==="modulepreload"&&t(r)}).observe(document,{childList:!0,subtree:!0});function a(e){const n={};return e.integrity&&(n.integrity=e.integrity),e.referrerPolicy&&(n.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?n.credentials="include":e.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function t(e){if(e.ep)return;e.ep=!0;const n=a(e);fetch(e.href,n)}})();(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))a(t);new MutationObserver(t=>{for(const e of t)if(e.type==="childList")for(const n of e.addedNodes)n.tagName==="LINK"&&n.rel==="modulepreload"&&a(n)}).observe(document,{childList:!0,subtree:!0});function i(t){const e={};return t.integrity&&(e.integrity=t.integrity),t.referrerPolicy&&(e.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?e.credentials="include":t.crossOrigin==="anonymous"?e.credentials="omit":e.credentials="same-origin",e}function a(t){if(t.ep)return;t.ep=!0;const e=i(t);fetch(t.href,e)}})();(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))a(t);new MutationObserver(t=>{for(const e of t)if(e.type==="childList")for(const n of e.addedNodes)n.tagName==="LINK"&&n.rel==="modulepreload"&&a(n)}).observe(document,{childList:!0,subtree:!0});function i(t){const e={};return t.integrity&&(e.integrity=t.integrity),t.referrerPolicy&&(e.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?e.credentials="include":t.crossOrigin==="anonymous"?e.credentials="omit":e.credentials="same-origin",e}function a(t){if(t.ep)return;t.ep=!0;const e=i(t);fetch(t.href,e)}})();const l=[{config:{id:"Hello, Moon",gravity:.004,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:3,initialAngle:0,initialVelocity:{x:.05,y:.1}},starter:`// Level 1 — Hello, Moon
+// The ship starts nearly upright with barely any movement.
+// Your goal: land before the velocity gets too high.
+// Try firing the booster engine to slow your descent.
 //
 // Available controls:
 //   falcon9.fireBoosterEngine = true/false  (main engine)
@@ -53,9 +17,7 @@ setInterval(() => {
   // TODO: replace this with your own logic
   falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 0;
 }, 16);
-`,
-    solution: `\
-// Level 1 — Hello, Moon (solution)
+`,solution:`// Level 1 — Hello, Moon (solution)
 // Fire booster whenever descending too fast; correct tilt with side thrusters.
 setInterval(() => {
   const angle = falcon9.angle;
@@ -67,24 +29,7 @@ setInterval(() => {
 
   falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
 }, 16);
-`,
-  },
-
-  // ── Level 2 — "Tilted" ────────────────────────────────────────────────────
-  {
-    config: {
-      id: "Tilted",
-      gravity: 0.008,
-      fuel: Infinity,
-      fuelConsumptionRate: 0,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 2.0,
-      initialAngle: 0.4,
-      initialVelocity: { x: 0.2, y: 0.2 },
-    },
-    starter: `\
-// Level 2 — Tilted
+`},{config:{id:"Tilted",gravity:.008,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:2,initialAngle:.4,initialVelocity:{x:.2,y:.2}},starter:`// Level 2 — Tilted
 // The ship spawns with a noticeable tilt.
 // Firing the booster while tilted pushes you sideways — fix the angle first!
 //
@@ -105,9 +50,7 @@ setInterval(() => {
   falcon9.fireRightThruster = /* ??? */ false;
   falcon9.fireBoosterEngine = /* ??? */ false;
 }, 16);
-`,
-    solution: `\
-// Level 2 — Tilted (solution)
+`,solution:`// Level 2 — Tilted (solution)
 // PD controller: correct angle and damp spin, then manage descent
 setInterval(() => {
   const angle = falcon9.angle;
@@ -118,26 +61,7 @@ setInterval(() => {
   falcon9.fireRightThruster = error < -0.05;
   falcon9.fireBoosterEngine = Math.abs(angle) < 0.3 && falcon9.velocity.y > 0.8;
 }, 16);
-`,
-  },
-
-  // ── Level 3 — "Steady the Ship" ──────────────────────────────────────────
-  {
-    config: {
-      id: "Steady the Ship",
-      gravity: 0.010,
-      fuel: Infinity,
-      fuelConsumptionRate: 0,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 1.5,
-      initialAngle: 0,
-      initialSpin: 0.1,
-      initialVelocity: { x: 0, y: 0.4 },
-      initialPosition: { x: 400, y: 100 },
-    },
-    starter: `\
-// Level 3 — Steady the Ship
+`},{config:{id:"Steady the Ship",gravity:.01,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:1.5,initialAngle:0,initialSpin:.1,initialVelocity:{x:0,y:.4},initialPosition:{x:400,y:100}},starter:`// Level 3 — Steady the Ship
 // Random tilt AND meaningful downward velocity. You must coordinate all
 // three controls simultaneously in a feedback loop.
 //
@@ -156,9 +80,7 @@ setInterval(() => {
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 3 — Steady the Ship (solution)
+`,solution:`// Level 3 — Steady the Ship (solution)
 setInterval(() => {
   const error = falcon9.angle + falcon9.rotationalMomentum * 8;
 
@@ -167,25 +89,7 @@ setInterval(() => {
   // Only thrust when reasonably upright and falling faster than 0.5
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.4 && falcon9.velocity.y > 0.5;
 }, 16);
-`,
-  },
-
-  // ── Level 4 — "Lateral Drift" ─────────────────────────────────────────────
-  {
-    config: {
-      id: "Lateral Drift",
-      gravity: 0.010,
-      fuel: Infinity,
-      fuelConsumptionRate: 0,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 1.0,
-      initialAngle: 0,
-      initialVelocity: { x: 1.0, y: 0.3 },
-      initialPosition: { x: 400, y: 80 },
-    },
-    starter: `\
-// Level 4 — Lateral Drift
+`},{config:{id:"Lateral Drift",gravity:.01,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:1,initialAngle:0,initialVelocity:{x:1,y:.3},initialPosition:{x:400,y:80}},starter:`// Level 4 — Lateral Drift
 // High horizontal velocity. Landing velocity = |vx| + |vy|, so sideways
 // speed counts against you. You must tilt and thrust to cancel horizontal drift.
 //
@@ -204,9 +108,7 @@ setInterval(() => {
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 4 — Lateral Drift (solution)
+`,solution:`// Level 4 — Lateral Drift (solution)
 // Cancel horizontal velocity by tilting into it, then upright and brake
 setInterval(() => {
   const vx  = falcon9.velocity.x;
@@ -222,26 +124,7 @@ setInterval(() => {
   falcon9.fireBoosterEngine = Math.abs(error) < 0.3
     && (vy > 0.5 || Math.abs(vx) > 0.2);
 }, 16);
-`,
-  },
-
-  // ── Level 5 — "Bullseye" ──────────────────────────────────────────────────
-  {
-    config: {
-      id: "Bullseye",
-      gravity: 0.010,
-      fuel: Infinity,
-      fuelConsumptionRate: 0,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 1.0,
-      landingPad: { width: 80 },
-      initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 0.3 },
-      initialPosition: { x: 350, y: 450 },
-    },
-    starter: `\
-// Level 5 — Bullseye
+`},{config:{id:"Bullseye",gravity:.01,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:1,landingPad:{width:80},initialAngle:.1,initialVelocity:{x:.2,y:.3},initialPosition:{x:350,y:450}},starter:`// Level 5 — Bullseye
 // A landing pad appears in the centre of the screen. You must land ON it
 // AND at safe speed. The pad is 80px wide.
 //
@@ -259,9 +142,7 @@ setInterval(() => {
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 5 — Bullseye (solution)
+`,solution:`// Level 5 — Bullseye (solution)
 // Bang-bang lateral: tilt left/right to steer toward the pad, then upright to brake.
 setInterval(() => {
   const padX     = game.canvas.width / 2;
@@ -292,26 +173,7 @@ setInterval(() => {
   // Brake vertical descent whenever falling fast enough
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35;
 }, 16);
-`,
-  },
-
-  // ── Level 6 — "On a Budget" ───────────────────────────────────────────────
-  {
-    config: {
-      id: "On a Budget",
-      gravity: 0.010,
-      fuel: 500,
-      fuelConsumptionRate: 0.05,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 1.0,
-      landingPad: { width: 80 },
-      initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 0.2 },
-      initialPosition: { x: 350, y: 450 },
-    },
-    starter: `\
-// Level 6 — On a Budget
+`},{config:{id:"On a Budget",gravity:.01,fuel:500,fuelConsumptionRate:.05,enginePower:.04,canReignite:!0,maxLandingVelocity:1,landingPad:{width:80},initialAngle:.1,initialVelocity:{x:.2,y:.2},initialPosition:{x:350,y:450}},starter:`// Level 6 — On a Budget
 // Fuel is now limited (500 units). Holding buttons burns it fast.
 // You need an efficient closed-loop controller, not held keys.
 //
@@ -329,9 +191,7 @@ setInterval(() => {
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 6 — On a Budget (solution)
+`,solution:`// Level 6 — On a Budget (solution)
 // Bang-bang lateral + wide dead-band to avoid wasting scarce fuel.
 setInterval(() => {
   const padX     = game.canvas.width / 2;
@@ -358,27 +218,7 @@ setInterval(() => {
 
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.4;
 }, 16);
-`,
-  },
-
-  // ── Level 7 — "Minimum Power" ────────────────────────────────────────────
-  {
-    config: {
-      id: "Minimum Power",
-      gravity: 0.010,
-      fuel: 350,
-      fuelConsumptionRate: 0.06,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 0.9,
-      landingPad: { width: 60 },
-      minThrottle: 0.06,
-      initialAngle: 0.15,
-      initialVelocity: { x: 0.2, y: 0.3 },
-      initialPosition: { x: 355, y: 450 },
-    },
-    starter: `\
-// Level 7 — Minimum Power
+`},{config:{id:"Minimum Power",gravity:.01,fuel:350,fuelConsumptionRate:.06,enginePower:.04,canReignite:!0,maxLandingVelocity:.9,landingPad:{width:60},minThrottle:.06,initialAngle:.15,initialVelocity:{x:.2,y:.3},initialPosition:{x:355,y:450}},starter:`// Level 7 — Minimum Power
 // The engine now fires at 1.5× normal thrust or not at all (minThrottle).
 // You cannot feather the engine — only short pulses are effective.
 // Over-correcting is now the main enemy.
@@ -395,9 +235,7 @@ setInterval(() => {
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 7 — Minimum Power (solution)
+`,solution:`// Level 7 — Minimum Power (solution)
 // Powerful engine + wide dead-band: let momentum carry between correction pulses.
 setInterval(() => {
   const padX     = game.canvas.width / 2;
@@ -423,27 +261,7 @@ setInterval(() => {
 
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.5;
 }, 16);
-`,
-  },
-
-  // ── Level 8 — "Precision Burn" ────────────────────────────────────────────
-  {
-    config: {
-      id: "Precision Burn",
-      gravity: 0.010,
-      fuel: 250,
-      fuelConsumptionRate: 0.07,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 0.8,
-      landingPad: { width: 40 },
-      minThrottle: 0.06,
-      initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 1.2 },
-      initialPosition: { x: 360, y: 450 },
-    },
-    starter: `\
-// Level 8 — Precision Burn
+`},{config:{id:"Precision Burn",gravity:.01,fuel:250,fuelConsumptionRate:.07,enginePower:.04,canReignite:!0,maxLandingVelocity:.8,landingPad:{width:40},minThrottle:.06,initialAngle:.1,initialVelocity:{x:.2,y:1.2},initialPosition:{x:360,y:450}},starter:`// Level 8 — Precision Burn
 // Narrow 40px pad, faster initial approach, and scarce fuel.
 // Reactive loops fail here — your script must reason about WHEN to burn,
 // not just WHETHER to burn.
@@ -458,9 +276,7 @@ setInterval(() => {
   // TODO: predictive burn scheduling
   falcon9.fireBoosterEngine = false;
 }, 16);
-`,
-    solution: `\
-// Level 8 — Precision Burn (solution)
+`,solution:`// Level 8 — Precision Burn (solution)
 // Tight pad (40px), scarce fuel: PD steering + stopping-distance burn trigger
 const NET_DECEL_8 = 0.04 - 0.010;  // enginePower - gravity
 const TARGET_VY_8 = 0.4;
@@ -495,28 +311,7 @@ setInterval(() => {
   // Only fire when close to upright to keep horizontal thrust minimal
   falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.25;
 }, 16);
-`,
-  },
-
-  // ── Level 9 — "The Long Fall" ─────────────────────────────────────────────
-  {
-    config: {
-      id: "The Long Fall",
-      gravity: 0.010,
-      fuel: 200,
-      fuelConsumptionRate: 0.08,
-      enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 0.7,
-      landingPad: { width: 40 },
-      minThrottle: 0.08,
-      initialAngle: 0,
-      initialSpin: 0,
-      initialPosition: { x: 400, y: 40 },
-      initialVelocity: { x: 0, y: 2.0 },
-    },
-    starter: `\
-// Level 9 — The Long Fall
+`},{config:{id:"The Long Fall",gravity:.01,fuel:200,fuelConsumptionRate:.08,enginePower:.04,canReignite:!0,maxLandingVelocity:.7,landingPad:{width:40},minThrottle:.08,initialAngle:0,initialSpin:0,initialPosition:{x:400,y:40},initialVelocity:{x:0,y:2}},starter:`// Level 9 — The Long Fall
 // High-altitude drop, velocity.y = 2.0, fuel = 200.
 // Every ill-timed burn wastes irreplaceable fuel.
 // Manual / reactive control is nearly impossible — you need an algorithm
@@ -537,9 +332,7 @@ setInterval(() => {
 
   falcon9.fireBoosterEngine = /* ??? */;
 }, 16);
-`,
-    solution: `\
-// Level 9 — The Long Fall (solution)
+`,solution:`// Level 9 — The Long Fall (solution)
 // One-shot suicide burn: latch ignition when stopping distance ≥ altitude.
 // A burn latch prevents oscillation from re-triggering the engine.
 const NET_DECEL_9 = 0.08 - 0.010;
@@ -564,28 +357,7 @@ setInterval(() => {
   }
   falcon9.fireBoosterEngine = burning_9 && Math.abs(angleError) < 0.3;
 }, 16);
-`,
-  },
-
-  // ── Level 10 — "Hoverslam" ────────────────────────────────────────────────
-  {
-    config: {
-      id: "Hoverslam",
-      gravity: 0.010,
-      fuel: 200,
-      fuelConsumptionRate: 0.10,
-      enginePower: 0.10,
-      canReignite: true,
-      maxLandingVelocity: 0.5,
-      landingPad: { width: 40 },
-      minThrottle: 0.10,
-      initialAngle: 0.0,
-      initialSpin: 0.25,
-      initialPosition: { y: 40 },
-      initialVelocity: { x: 0.05, y: 3.0 },
-    },
-    starter: `\
-// Level 10 — Hoverslam
+`},{config:{id:"Hoverslam",gravity:.01,fuel:200,fuelConsumptionRate:.1,enginePower:.1,canReignite:!0,maxLandingVelocity:.5,landingPad:{width:40},minThrottle:.1,initialAngle:0,initialSpin:.25,initialPosition:{y:40},initialVelocity:{x:.05,y:3}},starter:`// Level 10 — Hoverslam
 // The rocket is spinning and drifting sideways. Three problems to solve:
 //   1. Kill the spin and get upright (left/right thrusters)
 //   2. Steer slightly toward the pad (tilt into the drift, use engine for lateral force)
@@ -630,9 +402,7 @@ setInterval(() => {
   if (burning  && vy <= TARGET_VY)                              burning = false;
   falcon9.fireBoosterEngine = burning;
 }, 16);
-`,
-    solution: `\
-// Level 10 — Hoverslam (solution)
+`,solution:`// Level 10 — Hoverslam (solution)
 // PD control kills spin and steers toward pad; hoverslam handles vertical.
 const NET_DECEL_10 = 0.10 - 0.010;
 const TARGET_VY_10 = 0.3;
@@ -658,6 +428,4 @@ setInterval(() => {
 
   falcon9.fireBoosterEngine = burning_10;
 }, 16);
-`,
-  },
-];
+`}];export{l};
