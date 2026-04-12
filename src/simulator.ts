@@ -152,9 +152,10 @@ export function simulate(
     const right   = state.fireRightThruster && hasFuel;
     if (booster) state._boosterEverFired = true;
 
-    // Fuel consumption
+    // Fuel consumption — thrusters (grid fins / thrust vectoring) are free;
+    // only the main booster engine burns propellant.
     if (hasFuel && isFinite(state.fuelRemaining)) {
-      const active = (booster ? 1 : 0) + (left ? 1 : 0) + (right ? 1 : 0);
+      const active = booster ? 1 : 0;
       state.fuelRemaining = consumeFuel(state.fuelRemaining, level.fuelConsumptionRate, active, dt);
     }
 

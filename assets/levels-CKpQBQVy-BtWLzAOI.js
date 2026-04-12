@@ -1,7 +1,7 @@
-(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))t(e);new MutationObserver(e=>{for(const n of e)if(n.type==="childList")for(const r of n.addedNodes)r.tagName==="LINK"&&r.rel==="modulepreload"&&t(r)}).observe(document,{childList:!0,subtree:!0});function a(e){const n={};return e.integrity&&(n.integrity=e.integrity),e.referrerPolicy&&(n.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?n.credentials="include":e.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function t(e){if(e.ep)return;e.ep=!0;const n=a(e);fetch(e.href,n)}})();(function(){const i=document.createElement("link").relList;if(i&&i.supports&&i.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))a(t);new MutationObserver(t=>{for(const e of t)if(e.type==="childList")for(const n of e.addedNodes)n.tagName==="LINK"&&n.rel==="modulepreload"&&a(n)}).observe(document,{childList:!0,subtree:!0});function o(t){const e={};return t.integrity&&(e.integrity=t.integrity),t.referrerPolicy&&(e.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?e.credentials="include":t.crossOrigin==="anonymous"?e.credentials="omit":e.credentials="same-origin",e}function a(t){if(t.ep)return;t.ep=!0;const e=o(t);fetch(t.href,e)}})();const l=[{config:{id:"Hello, Moon",gravity:.004,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:3,initialAngle:0,initialVelocity:{x:.05,y:.1}},starter:`// Level 1 — Hello, Moon
-// The ship starts nearly upright with barely any movement.
-// Your goal: land before the velocity gets too high.
-// Try firing the booster engine to slow your descent.
+(function(){const o=document.createElement("link").relList;if(o&&o.supports&&o.supports("modulepreload"))return;for(const e of document.querySelectorAll('link[rel="modulepreload"]'))t(e);new MutationObserver(e=>{for(const n of e)if(n.type==="childList")for(const r of n.addedNodes)r.tagName==="LINK"&&r.rel==="modulepreload"&&t(r)}).observe(document,{childList:!0,subtree:!0});function a(e){const n={};return e.integrity&&(n.integrity=e.integrity),e.referrerPolicy&&(n.referrerPolicy=e.referrerPolicy),e.crossOrigin==="use-credentials"?n.credentials="include":e.crossOrigin==="anonymous"?n.credentials="omit":n.credentials="same-origin",n}function t(e){if(e.ep)return;e.ep=!0;const n=a(e);fetch(e.href,n)}})();(function(){const i=document.createElement("link").relList;if(i&&i.supports&&i.supports("modulepreload"))return;for(const t of document.querySelectorAll('link[rel="modulepreload"]'))a(t);new MutationObserver(t=>{for(const e of t)if(e.type==="childList")for(const n of e.addedNodes)n.tagName==="LINK"&&n.rel==="modulepreload"&&a(n)}).observe(document,{childList:!0,subtree:!0});function o(t){const e={};return t.integrity&&(e.integrity=t.integrity),t.referrerPolicy&&(e.referrerPolicy=t.referrerPolicy),t.crossOrigin==="use-credentials"?e.credentials="include":t.crossOrigin==="anonymous"?e.credentials="omit":e.credentials="same-origin",e}function a(t){if(t.ep)return;t.ep=!0;const e=o(t);fetch(t.href,e)}})();const l=[{config:{id:"Hello, Moon",gravity:.004,fuel:1/0,fuelConsumptionRate:0,enginePower:.04,canReignite:!0,maxLandingVelocity:3,initialAngle:0,initialVelocity:{x:.05,y:1.5}},starter:`// Level 1 — Hello, Moon
+// The ship starts nearly upright and falling at moderate speed.
+// Your goal: slow down before you hit the surface.
+// Try firing the booster engine to control your descent.
 //
 // Available controls:
 //   falcon9.fireBoosterEngine = true/false  (main engine)
@@ -12,10 +12,10 @@
 //   falcon9.velocity.y   — downward speed (positive = falling)
 //   falcon9.angle        — tilt in radians (0 = straight up)
 
-// Fire the booster whenever we're falling too fast
+// Fire the booster whenever we're falling too fast.
+// Try adjusting the threshold — what value keeps you from crashing?
 setInterval(() => {
-  // TODO: replace this with your own logic
-  falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 0;
+  falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 1.5;
 }, 16);
 `,solution:`// Level 1 — Hello, Moon (solution)
 // Fire booster whenever descending too fast; correct tilt with side thrusters.

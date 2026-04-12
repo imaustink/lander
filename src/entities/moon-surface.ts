@@ -24,10 +24,8 @@ const WORLD_SPAN = WORLD_RIGHT - WORLD_LEFT;
 export class MoonSurface implements Entity {
   private _craters: Crater[] = [];
   private _rocks: Rock[] = [];
-  private _canvasHeight: number;
 
   constructor(game: GameEngine) {
-    this._canvasHeight = game.canvas.height;
     this._generate();
     game.groundY = game.canvas.height - SURFACE_HEIGHT;
     game.addEntity(this);
@@ -40,8 +38,8 @@ export class MoonSurface implements Entity {
       const rx = 4 + Math.random() * 26;
       const ry = rx * (0.25 + Math.random() * 0.2); // flat, elliptical
       const x = WORLD_LEFT + Math.random() * WORLD_SPAN;
-      // place crater centre so it's fully inside the surface strip
-      const y = this._canvasHeight - SURFACE_HEIGHT + ry + Math.random() * (SURFACE_HEIGHT - ry * 2);
+      // y is stored as offset from surface top, so it stays correct after resize
+      const y = ry + Math.random() * (SURFACE_HEIGHT - ry * 2);
       this._craters.push({ x, y, rx, ry });
     }
 
@@ -51,14 +49,12 @@ export class MoonSurface implements Entity {
       const rx = 2 + Math.random() * 7;
       const ry = rx * (0.5 + Math.random() * 0.6);
       const x = WORLD_LEFT + Math.random() * WORLD_SPAN;
-      const y = this._canvasHeight - SURFACE_HEIGHT + ry; // sit on surface top edge
+      const y = ry; // offset from surface top; ry keeps the rock sitting on the surface
       this._rocks.push({ x, y, rx, ry, angle: Math.random() * Math.PI });
     }
   }
 
   update(_dt: number, game: GameEngine): void {
-    // Keep canvasHeight in sync with resize and update physics ground plane
-    this._canvasHeight = game.canvas.height;
     game.groundY = game.canvas.height - SURFACE_HEIGHT;
   }
 
@@ -90,22 +86,23 @@ export class MoonSurface implements Entity {
 
     for (const c of this._craters) {
       if (c.x + c.rx < viewLeft || c.x - c.rx > viewRight) continue;
+      const cy = surfaceTop + c.y;
 
       // Dark interior
       ctx.beginPath();
-      ctx.ellipse(c.x, c.y, c.rx, c.ry, 0, 0, Math.PI * 2);
+      ctx.ellipse(c.x, cy, c.rx, c.ry, 0, 0, Math.PI * 2);
       ctx.fillStyle = "#6e6e6e";
       ctx.fill();
 
       // Lighter crescent rim at the top
       ctx.beginPath();
-      ctx.ellipse(c.x, c.y - c.ry * 0.25, c.rx * 0.9, c.ry * 0.45, 0, Math.PI, 0);
+      ctx.ellipse(c.x, cy - c.ry * 0.25, c.rx * 0.9, c.ry * 0.45, 0, Math.PI, 0);
       ctx.fillStyle = "rgba(200, 200, 200, 0.55)";
       ctx.fill();
 
       // Subtle outer shadow ring
       ctx.beginPath();
-      ctx.ellipse(c.x, c.y, c.rx + 1.5, c.ry + 1, 0, 0, Math.PI * 2);
+      ctx.ellipse(c.x, cy, c.rx + 1.5, c.ry + 1, 0, 0, Math.PI * 2);
       ctx.strokeStyle = "rgba(80, 80, 80, 0.4)";
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -116,7 +113,7 @@ export class MoonSurface implements Entity {
       if (r.x + r.rx < viewLeft || r.x - r.rx > viewRight) continue;
 
       ctx.save();
-      ctx.translate(r.x, r.y);
+      ctx.translate(r.x, surfaceTop + r.y);
       ctx.rotate(r.angle);
       ctx.beginPath();
       ctx.ellipse(0, 0, r.rx, r.ry, 0, 0, Math.PI * 2);

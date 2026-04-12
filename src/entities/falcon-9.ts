@@ -50,6 +50,7 @@ export class Falcon9 implements Entity {
   landingVelocity: number | null = null;
   private _boosterEverFired = false;
   private _boosterSealed = false;
+  private _cheater = false;
   private _game!: GameEngine;
 
   constructor(game: GameEngine, options: Falcon9Options = {}) {
@@ -127,6 +128,19 @@ export class Falcon9 implements Entity {
     return this._minHeight(this._game.groundY) - this.position.y;
   }
 
+  markCheater(): void {
+    if (this._cheater) return;
+    this._cheater = true;
+    // Kill thrust, fling ship downward at clearly lethal speed
+    this.fireBoosterEngine = false;
+    this.fireLeftThruster = false;
+    this.fireRightThruster = false;
+    this.fuelRemaining = 0;
+    this.velocity.x = (Math.random() - 0.5) * 8;
+    this.velocity.y = 20;
+    this.rotationalMomentum = (Math.random() - 0.5) * 0.4;
+  }
+
   // ── Entity lifecycle ─────────────────────────────────────────────────────
 
   update(dt: number, game: GameEngine): void {
@@ -150,10 +164,10 @@ export class Falcon9 implements Entity {
 
     if (boosterActive) this._boosterEverFired = true;
 
-    // Consume fuel
+    // Consume fuel — thrusters (grid fins / thrust vectoring) are free;
+    // only the main booster engine burns propellant.
     if (hasFuel) {
-      const activeThrusterCount =
-        (boosterActive ? 1 : 0) + (leftActive ? 1 : 0) + (rightActive ? 1 : 0);
+      const activeThrusterCount = boosterActive ? 1 : 0;
       this.fuelRemaining = consumeFuel(
         this.fuelRemaining, this._fuelConsumptionRate, activeThrusterCount, dt,
       );
@@ -222,6 +236,9 @@ export class Falcon9 implements Entity {
     ctx.restore();
     if (isFinite(level.fuel)) {
       this._drawFuelGauge(ctx, game);
+    }
+    if (this._cheater) {
+      this._drawCheaterOverlay(ctx, game);
     }
   }
 
@@ -414,6 +431,36 @@ export class Falcon9 implements Entity {
     ctx.fillStyle = "#e6edf3";
     ctx.fillRect(centerX - halfW, padY - 12, 3, 12);
     ctx.fillRect(centerX + halfW - 3, padY - 12, 3, 12);
+    ctx.restore();
+  }
+
+  private _drawCheaterOverlay(ctx: CanvasRenderingContext2D, game: GameEngine): void {
+    ctx.save();
+    ctx.resetTransform();
+    const cw = game.canvas.width;
+    const ch = game.canvas.height;
+
+    // Dark vignette
+    ctx.fillStyle = "rgba(139,0,0,0.35)";
+    ctx.fillRect(0, 0, cw, ch);
+
+    const text = "CHEATER";
+    const fontSize = Math.min(cw * 0.2, 160);
+    ctx.font = `900 ${fontSize}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // Shadow
+    ctx.shadowColor = "#f85149";
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = "#f85149";
+    ctx.fillText(text, cw / 2, ch / 2);
+
+    // Bright core
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#ff6b6b";
+    ctx.fillText(text, cw / 2, ch / 2);
+
     ctx.restore();
   }
 

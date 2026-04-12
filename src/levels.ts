@@ -48,10 +48,10 @@ export const LEVELS: LevelData[] = [
 //   falcon9.velocity.y   — downward speed (positive = falling)
 //   falcon9.angle        — tilt in radians (0 = straight up)
 
-// Fire the booster whenever we're falling too fast
+// Fire the booster whenever we're falling too fast.
+// Try adjusting the threshold — what value keeps you from crashing?
 setInterval(() => {
-  // TODO: replace this with your own logic
-  falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 0;
+  falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 1.5;
 }, 16);
 `,
     solution: `\
