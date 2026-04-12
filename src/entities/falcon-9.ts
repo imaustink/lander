@@ -418,7 +418,7 @@ export class Falcon9 implements Entity {
     const pad = game.levels.current.landingPad!;
     const centerX = pad.centerX ?? game.canvas.width / 2;
     const halfW = pad.width / 2;
-    const padY = game.canvas.height;
+    const padY = game.groundY;
     const padH = 4;
 
     ctx.save();

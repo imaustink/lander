@@ -4,6 +4,7 @@
   "description": "A lunar lander game where you write code to control the lander and safely land on the moon.",
   "scripts": {
     "dev": "vite --port 3000",
+    "prebuild": "node scripts/prebuild.js",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000",
     "start": "npm run dev",
