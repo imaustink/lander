@@ -7,6 +7,8 @@ export default defineConfig({
     exclude: ["monaco-editor"],
   },
   build: {
+    outDir: ".",
+    emptyOutDir: false,
     rollupOptions: {
       input: {
         main: resolve(__dirname, "index.html"),
