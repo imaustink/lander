@@ -19,6 +19,8 @@ game.onLevelLoad = (_level: LevelConfig, _index: number) => {
   falcon9 = new Falcon9(game);
   // Expose updated reference to user code
   (window as unknown as GameWindow).falcon9 = falcon9;
+  // Notify parent window so the level selector stays in sync
+  window.parent.postMessage({ type: "levelLoaded", index: _index }, "*");
   game.start();
 };
 

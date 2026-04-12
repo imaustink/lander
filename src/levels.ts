@@ -58,6 +58,13 @@ setInterval(() => {
 // Level 1 — Hello, Moon (solution)
 // Fire booster whenever descending too fast; correct tilt with side thrusters.
 setInterval(() => {
+  const angle = falcon9.angle;
+  const spin  = falcon9.rotationalMomentum;
+
+  // Dampen any rotation to keep the ship upright
+  falcon9.fireLeftThruster  = angle > 0.05 || spin > 0.5;
+  falcon9.fireRightThruster = angle < -0.05 || spin < -0.5;
+
   falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
 }, 16);
 `,
@@ -572,46 +579,62 @@ setInterval(() => {
       maxLandingVelocity: 0.5,
       landingPad: { width: 40 },
       minThrottle: 0.10,
-      initialAngle: 0,
-      initialSpin: 0,
-      initialPosition: { x: 400, y: 40 },
-      initialVelocity: { x: 0, y: 3.0 },
+      initialAngle: 0.0,
+      initialSpin: 0.25,
+      initialPosition: { y: 40 },
+      initialVelocity: { x: 0.05, y: 3.0 },
+      fuel: 300,
     },
     starter: `\
 // Level 10 — Hoverslam
-// Engine fires at 100% (0.10) or not at all. Gravity = 0.010.
-// Net deceleration while burning = 0.10 - 0.010 = 0.09 per frame.
-// Starting velocity = 3.0 px/frame.
+// The rocket is spinning and drifting sideways. Three problems to solve:
+//   1. Kill the spin and get upright (left/right thrusters)
+//   2. Steer slightly toward the pad (tilt into the drift, use engine for lateral force)
+//   3. Fire the main engine at the exact right altitude to arrest your fall
 //
-// Core equation (stopping distance from current velocity v):
-//   stopping_distance = v² / (2 × 0.09)
+// Physics:
+//   enginePower = 0.10  |  gravity = 0.010  |  net decel = 0.09
+//   Stopping distance: (vy² - targetVy²) / (2 × 0.09)
+//   Landing velocity = |vx| + |vy| — lateral speed counts against your budget!
 //
-// You have exactly 120 fuel units — barely enough for ONE precisely timed burn.
-// Compute the ignition altitude mathematically and fire exactly once.
+// Tip: tilt SLIGHTLY against your lateral drift so the engine nudges you toward pad center.
+//   targetAngle ≈ -dx * kP - vx * kD   (try kP = 0.001, kD = 0.2)
 //
-// Monitor:  falcon9.altitude   — pixels to ground
-//           falcon9.velocity.y — current downward speed
+// Monitor:
+//   falcon9.altitude           — pixels to ground
+//   falcon9.velocity.y         — downward speed
+//   falcon9.velocity.x         — lateral speed
+//   falcon9.position.x         — horizontal position
+//   falcon9.angle              — tilt (radians, + = right)
+//   falcon9.rotationalMomentum — spin rate
 
-const NET_DECEL   = 0.10 - 0.010;
-const TARGET_VY   = 0.3;
-let   hasFired    = false;
+const NET_DECEL = 0.10 - 0.010;
+const TARGET_VY = 0.3;
+let   burning   = false;
 
 setInterval(() => {
-  const vy  = falcon9.velocity.y;
-  const alt = falcon9.altitude;
+  const padX = game.canvas.width / 2;
+  const dx   = falcon9.position.x - padX;
+  const vx   = falcon9.velocity.x;
+  const vy   = falcon9.velocity.y;
+  const alt  = falcon9.altitude;
 
-  const excessVy    = Math.max(0, vy - TARGET_VY);
-  const ignitionAlt = /* ??? */;
+  // 1. PD angle control — null spin, lean against lateral drift
+  const targetAngle = Math.max(-0.05, Math.min(0.05, -dx * /* kP */ 0 - vx * /* kD */ 0));
+  const angleError  = falcon9.angle - targetAngle + falcon9.rotationalMomentum * /* gain */ 0;
+  falcon9.fireLeftThruster  = angleError > 0.03;
+  falcon9.fireRightThruster = angleError < -0.03;
 
-  if (!hasFired && alt <= ignitionAlt) {
-    hasFired = true;
-    // TODO: trigger the burn
-  }
+  // 2. Hoverslam — compute ignition altitude and latch the burn
+  const ignitionAlt = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * NET_DECEL);
+  if (!burning && alt <= ignitionAlt * 1.08 && vy > TARGET_VY) burning = true;
+  if (burning  && vy <= TARGET_VY)                              burning = false;
+  falcon9.fireBoosterEngine = burning;
 }, 16);
 `,
     solution: `\
 // Level 10 — Hoverslam (solution)
-// Compute ignition altitude from stopping-distance equation; fire exactly once.
+// PD control kills spin and steers toward pad; hoverslam handles vertical.
 const NET_DECEL_10 = 0.10 - 0.010;
 const TARGET_VY_10 = 0.3;
 let   burning_10   = false;
@@ -623,21 +646,18 @@ setInterval(() => {
   const vy   = falcon9.velocity.y;
   const alt  = falcon9.altitude;
 
-  // Stay upright — minimal fuel for corrections
-  const angleError = falcon9.angle + falcon9.rotationalMomentum * 6;
-  falcon9.fireLeftThruster  = angleError > 0.04;
-  falcon9.fireRightThruster = angleError < -0.04;
+  // Lean slightly against drift so the engine nudges the ship pad-ward during the burn
+  const targetAngle = Math.max(-0.05, Math.min(0.05, -dx * 0.001 - vx * 0.5));
+  const angleError  = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 2;
+  falcon9.fireLeftThruster  = angleError > 0.03;
+  falcon9.fireRightThruster = angleError < -0.03;
 
-  // Compute ignition altitude using correct kinematic formula
+  // Correct kinematic ignition altitude: (vy²-targetVy²)/(2*a)
   const ignitionAlt = Math.max(0, vy * vy - TARGET_VY_10 * TARGET_VY_10) / (2 * NET_DECEL_10);
+  if (!burning_10 && alt <= ignitionAlt * 1.08 && vy > TARGET_VY_10) burning_10 = true;
+  if (burning_10  && vy <= TARGET_VY_10)                               burning_10 = false;
 
-  if (!burning_10 && alt <= ignitionAlt * 1.08 && vy > TARGET_VY_10) {
-    burning_10 = true;
-  }
-  if (burning_10 && vy <= TARGET_VY_10) {
-    burning_10 = false;
-  }
-  falcon9.fireBoosterEngine = burning_10 && Math.abs(angleError) < 0.35;
+  falcon9.fireBoosterEngine = burning_10;
 }, 16);
 `,
   },

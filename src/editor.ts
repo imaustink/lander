@@ -74,6 +74,15 @@ require(["vs/editor/editor.main"], function () {
     editor.setValue(loadCode(currentLevel));
   });
 
+  // Sync selector when the game advances levels inside the iframe
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "levelLoaded") {
+      const idx = event.data.index as number;
+      currentLevel = idx;
+      levelSelect.value = String(idx);
+    }
+  });
+
   // ── Show Solution ───────────────────────────────────────────────────────
   showSolution.addEventListener("click", () => {
     confirmDialog.showModal();
