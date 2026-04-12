@@ -51,6 +51,7 @@ export class Falcon9 implements Entity {
   private _boosterEverFired = false;
   private _boosterSealed = false;
   private _cheater = false;
+  private _legDeployRatio = 0; // 0 = stowed, 1 = fully deployed
   private _game!: GameEngine;
 
   constructor(game: GameEngine, options: Falcon9Options = {}) {
@@ -60,8 +61,8 @@ export class Falcon9 implements Entity {
     const canvasH = game.canvas.height;
 
     this.color = options.color ?? "white";
-    this.width = options.width ?? 14;
-    this.height = options.height ?? 72;
+    this.width = options.width ?? 12;
+    this.height = options.height ?? 104;
 
     this.position = new Vector2(
       options.position?.x ?? canvasW / 2,
@@ -176,6 +177,14 @@ export class Falcon9 implements Entity {
     this._updateAngle(t, leftActive, rightActive, level.gravity);
     this._updateVelocity(t, boosterActive, level.gravity, level.minThrottle ?? this.enginePower);
     this._updatePosition(t, game);
+
+    // Animate landing legs: deploy below 150 units altitude (~0.9s unfold)
+    const DEPLOY_ALTITUDE = 150;
+    if (this.altitude < DEPLOY_ALTITUDE) {
+      this._legDeployRatio = Math.min(1, this._legDeployRatio + dt / 900);
+    } else {
+      this._legDeployRatio = Math.max(0, this._legDeployRatio - dt / 900);
+    }
   }
 
   private _updateAngle(t: number, leftActive: boolean, rightActive: boolean, gravity: number): void {
@@ -226,23 +235,16 @@ export class Falcon9 implements Entity {
   }
 
   render(ctx: CanvasRenderingContext2D, game: GameEngine): void {
-    const level = game.levels.current;
-    if (level.landingPad !== undefined) {
-      this._drawLandingPad(ctx, game);
-    }
     ctx.save();
-    this._drawShipBody(ctx);
+    this._drawShipBody(ctx, this._legDeployRatio);
     this._drawEngineFlames(ctx, game);
     ctx.restore();
-    if (isFinite(level.fuel)) {
-      this._drawFuelGauge(ctx, game);
-    }
     if (this._cheater) {
       this._drawCheaterOverlay(ctx, game);
     }
   }
 
-  private _drawShipBody(ctx: CanvasRenderingContext2D): void {
+  private _drawShipBody(ctx: CanvasRenderingContext2D, legRatio: number): void {
     const w = this.width;
     const h = this.height;
     const hw = w / 2;  // half-width
@@ -251,14 +253,18 @@ export class Falcon9 implements Entity {
     ctx.translate(this.position.x, this.position.y);
     ctx.rotate(this.angle);
 
-    // ── Nose cone ────────────────────────────────────────────────────────────
-    // Pointed tip at top, fans out to stage-2 width
-    const s2Half = hw * 0.52; // stage-2 half-width
-    const noseBase = -hh + h * 0.12; // y where nose meets stage 2
+    // ── Nose cone (ogive fairing) ─────────────────────────────────────────────
+    // Falcon 9 has a nearly uniform diameter — fairing, stage 2, and stage 1
+    // are all the same width. The ogive tapers from full-width at the base.
+    const s2Half = hw; // stage-2 matches full body width
+    const noseBase = -hh + h * 0.18;
+    const tipY = -hh;
+    const ctrlY = tipY + (noseBase - tipY) * 0.5;
     ctx.beginPath();
-    ctx.moveTo(0, -hh);           // tip
-    ctx.lineTo(s2Half, noseBase);
-    ctx.lineTo(-s2Half, noseBase);
+    ctx.moveTo(0, tipY);
+    ctx.quadraticCurveTo(hw * 0.9, ctrlY, hw, noseBase);
+    ctx.lineTo(-hw, noseBase);
+    ctx.quadraticCurveTo(-hw * 0.9, ctrlY, 0, tipY);
     ctx.closePath();
     ctx.fillStyle = this.color;
     ctx.fill();
@@ -311,31 +317,47 @@ export class Falcon9 implements Entity {
     ctx.fillStyle = "#444";
     ctx.fillRect(-hw - 1.5, s1Bot, w + 3, octawebH);
 
-    // ── Landing legs ─────────────────────────────────────────────────────────
-    const legTopY = s1Bot - h * 0.18; // attach point on stage 1
-    const legBotY = hh + 2;           // foot lands slightly below body bottom
-    const legSpreadX = hw * 3.2;      // how far out the foot extends
+    // ── Landing legs (fold down via legRatio: 0 = stowed up, 1 = deployed) ───
+    const legAttachX = hw * 0.7;
+    const legAttachY = s1Bot - h * 0.18;
+    const braceAttachY = legAttachY + h * 0.06;
+
+    const deployedSpreadX = hw * 3.2;
+    const deployedFootY = hh + 2;
+
+    // Fixed leg length — foot rotates around the pivot from straight-up to deployed
+    const legDX = deployedSpreadX - legAttachX;
+    const legDY = deployedFootY - legAttachY;
+    const legLength = Math.sqrt(legDX * legDX + legDY * legDY);
+    const stowedAngle = -Math.PI / 2;                     // pointing straight up
+    const deployedAngle = Math.atan2(legDY, legDX);       // down and outward
+    const angle = stowedAngle + (deployedAngle - stowedAngle) * legRatio;
+
+    // Right foot (positive x), left foot (mirrored)
+    const rFootX =  legAttachX + legLength * Math.cos(angle);
+    const lFootX = -legAttachX - legLength * Math.cos(angle);
+    const footY  =  legAttachY + legLength * Math.sin(angle);
+
     ctx.strokeStyle = "#ccc";
     ctx.lineWidth = 1.2;
-    // Main strut
     ctx.beginPath();
-    ctx.moveTo(-hw * 0.7, legTopY);
-    ctx.lineTo(-legSpreadX, legBotY);
+    ctx.moveTo(legAttachX, legAttachY);
+    ctx.lineTo(rFootX, footY);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(hw * 0.7, legTopY);
-    ctx.lineTo(legSpreadX, legBotY);
+    ctx.moveTo(-legAttachX, legAttachY);
+    ctx.lineTo(lFootX, footY);
     ctx.stroke();
     // Diagonal brace
     ctx.lineWidth = 0.8;
     ctx.strokeStyle = "#aaa";
     ctx.beginPath();
-    ctx.moveTo(-hw, legTopY + h * 0.06);
-    ctx.lineTo(-legSpreadX, legBotY);
+    ctx.moveTo(hw, braceAttachY);
+    ctx.lineTo(rFootX, footY);
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(hw, legTopY + h * 0.06);
-    ctx.lineTo(legSpreadX, legBotY);
+    ctx.moveTo(-hw, braceAttachY);
+    ctx.lineTo(lFootX, footY);
     ctx.stroke();
 
     // ── Engine nozzle bell ───────────────────────────────────────────────────
@@ -414,26 +436,6 @@ export class Falcon9 implements Entity {
     ctx.fill();
   }
 
-  private _drawLandingPad(ctx: CanvasRenderingContext2D, game: GameEngine): void {
-    const pad = game.levels.current.landingPad!;
-    const centerX = pad.centerX ?? game.canvas.width / 2;
-    const halfW = pad.width / 2;
-    const padY = game.groundY;
-    const padH = 4;
-
-    ctx.save();
-    ctx.shadowColor = "#58a6ff";
-    ctx.shadowBlur = 14;
-    ctx.fillStyle = "#58a6ff";
-    ctx.fillRect(centerX - halfW, padY - padH, pad.width, padH);
-    // Edge marker poles
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = "#e6edf3";
-    ctx.fillRect(centerX - halfW, padY - 12, 3, 12);
-    ctx.fillRect(centerX + halfW - 3, padY - 12, 3, 12);
-    ctx.restore();
-  }
-
   private _drawCheaterOverlay(ctx: CanvasRenderingContext2D, game: GameEngine): void {
     ctx.save();
     ctx.resetTransform();
@@ -464,38 +466,4 @@ export class Falcon9 implements Entity {
     ctx.restore();
   }
 
-  private _drawFuelGauge(ctx: CanvasRenderingContext2D, game: GameEngine): void {
-    const level = game.levels.current;
-    const ratio = Math.max(0, this.fuelRemaining / level.fuel);
-    const barW = 120;
-    const barH = 10;
-    const x = 16;
-    const y = 16;
-    const r = barH / 2;
-
-    ctx.save();
-    // Reset to screen-space so HUD stays fixed regardless of camera offset
-    ctx.resetTransform();
-
-    // Label
-    ctx.fillStyle = "#8b949e";
-    ctx.font = "11px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
-    ctx.fillText("FUEL", x, y - 4);
-
-    // Background pill
-    ctx.beginPath();
-    ctx.roundRect(x, y, barW, barH, r);
-    ctx.fillStyle = "#21262d";
-    ctx.fill();
-
-    // Filled portion
-    if (ratio > 0) {
-      ctx.beginPath();
-      ctx.roundRect(x, y, barW * ratio, barH, r);
-      ctx.fillStyle = ratio > 0.3 ? "#3fb950" : ratio > 0.1 ? "#d29922" : "#f85149";
-      ctx.fill();
-    }
-
-    ctx.restore();
-  }
 }

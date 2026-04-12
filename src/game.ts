@@ -2,6 +2,8 @@ import { GameEngine } from "./engine/game-engine.js";
 import { Falcon9 } from "./entities/falcon-9.js";
 import { Starfield } from "./entities/starfield.js";
 import { MoonSurface } from "./entities/moon-surface.js";
+import { LandingPad } from "./entities/landing-pad.js";
+import { FuelGauge } from "./entities/fuel-gauge.js";
 import type { LevelConfig } from "./engine/level.js";
 import { LEVELS } from "./levels.js";
 import { createFalcon9Proxy } from "./falcon9-proxy.js";
@@ -21,7 +23,9 @@ let falcon9: Falcon9;
 game.onLevelLoad = (_level: LevelConfig, _index: number) => {
   new Starfield(game);
   new MoonSurface(game);
+  new LandingPad(game);
   falcon9 = new Falcon9(game);
+  new FuelGauge(game, falcon9);
   // Expose a read-guarded proxy — user code can only write the three control flags
   (window as unknown as GameWindow).falcon9 = createFalcon9Proxy(falcon9);
   // Notify parent window so the level selector stays in sync
