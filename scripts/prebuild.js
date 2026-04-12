@@ -11,7 +11,7 @@
  *    of recompiling from TypeScript source.
  */
 
-import { readFileSync, writeFileSync, readdirSync, rmSync } from "fs";
+import { existsSync, readFileSync, writeFileSync, readdirSync, rmSync } from "fs";
 import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 
@@ -21,10 +21,12 @@ const root = resolve(fileURLToPath(import.meta.url), "../..");
 
 const assetsDir = join(root, "assets");
 let removed = 0;
-for (const file of readdirSync(assetsDir)) {
-  if (file.endsWith(".js")) {
-    rmSync(join(assetsDir, file));
-    removed++;
+if (existsSync(assetsDir)) {
+  for (const file of readdirSync(assetsDir)) {
+    if (file.endsWith(".js")) {
+      rmSync(join(assetsDir, file));
+      removed++;
+    }
   }
 }
 if (removed) console.log(`prebuild: removed ${removed} stale asset(s) from assets/`);
