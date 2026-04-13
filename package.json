@@ -1,16 +1,29 @@
 {
-  "name": "lander",
+  "name": "@k5s/lander",
   "version": "1.0.0",
   "description": "A lunar lander game where you write code to control the lander and safely land on the moon.",
   "scripts": {
-    "predev": "node scripts/prebuild.js",
     "dev": "vite --port 3000",
-    "prebuild": "node scripts/prebuild.js",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 3000",
     "start": "npm run dev",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "prepublishOnly": "npm run build",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major"
+  },
+  "files": [
+    "index.html",
+    "frames/",
+    "assets/",
+    "vs/"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "author": "Austin Kurpuis <a@kurpuis.com>",
   "license": "MIT",
@@ -18,6 +31,7 @@
     "monaco-editor": "^0.36.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.59.1",
     "typescript": "^5.4.5",
     "vite": "^5.2.11",
     "vitest": "^4.1.4"

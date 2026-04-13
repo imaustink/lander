@@ -3,16 +3,17 @@ import { defineConfig } from "vite";
 import { resolve } from "path";
 
 export default defineConfig({
+  root: "app",
   optimizeDeps: {
     exclude: ["monaco-editor"],
   },
   build: {
-    outDir: ".",
-    emptyOutDir: false,
+    outDir: "../docs",
+    emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        game: resolve(__dirname, "frames/game.html"),
+        main: resolve(__dirname, "app/index.html"),
+        game: resolve(__dirname, "app/frames/game.html"),
       },
     },
   },
