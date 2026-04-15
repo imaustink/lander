@@ -43,13 +43,8 @@ jobs:
 
       - name: Stage deploy artifacts
         run: |
-          mkdir _site
-          cp index.html _site/
-          cp CNAME _site/
-          cp -r assets _site/
-          cp -r frames _site/
-          cp -r vs _site/
-          touch _site/.nojekyll
+          cp CNAME docs/
+          touch docs/.nojekyll
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
@@ -57,7 +52,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: docs
 
       - name: Deploy to GitHub Pages
         id: deployment

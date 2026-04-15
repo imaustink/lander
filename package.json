@@ -16,7 +16,12 @@
     "release:minor": "node scripts/release.js minor",
     "release:major": "node scripts/release.js major"
   },
+  "bin": {
+    "lander": "bin/lander.js"
+  },
+  "type": "module",
   "files": [
+    "bin/",
     "index.html",
     "frames/",
     "assets/",
