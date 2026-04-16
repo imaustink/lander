@@ -85,8 +85,9 @@ export function simulate(
   const canvasHeight = opts.canvasHeight ?? 600;
   const dt           = opts.dt           ?? 16.67;
   const maxFrames    = opts.maxFrames    ?? 18_000;
-  const shipWidth    = opts.shipWidth    ?? 14;
-  const shipHeight   = opts.shipHeight   ?? 72;
+  // Match actual Falcon9 entity defaults: width=12, height=104, _effectiveHeight=104+14=118
+  const shipWidth    = opts.shipWidth    ?? 12;
+  const shipHeight   = opts.shipHeight   ?? 118;
   const drag         = opts.dragCoefficient ?? 0.05;
 
   // Resolve initial state from level config — mirrors Falcon9 constructor

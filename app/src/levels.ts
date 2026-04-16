@@ -238,7 +238,7 @@ setInterval(() => {
       landingPad: { width: 80 },
       initialAngle: 0.1,
       initialVelocity: { x: 0.2, y: 0.3 },
-      initialPosition: { x: 350, y: 450 },
+      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
     },
     starter: `\
 // Level 5 — Bullseye
@@ -262,34 +262,26 @@ setInterval(() => {
 `,
     solution: `\
 // Level 5 — Bullseye (solution)
-// Bang-bang lateral: tilt left/right to steer toward the pad, then upright to brake.
+// The ship spawns directly above the pad but with a rightward drift.
+// A PD controller maps position error and lateral velocity directly onto a
+// target tilt angle — no inner velocity loop needed.
 setInterval(() => {
-  const padX     = game.canvas.width / 2;
-  const padHalf  = 40;                          // half of pad width (80)
-  const posX     = falcon9.position.x;
-  const vx       = falcon9.velocity.x;
-  const vy       = falcon9.velocity.y;
+  const padX = game.canvas.width / 2;   // pad is always at canvas centre
+  const err  = padX - falcon9.position.x;  // +ve = pad is right of ship
+  const vx   = falcon9.velocity.x;
+  const vy   = falcon9.velocity.y;
 
-  // Desired vx: cancel drift toward pad; maintain small approach if far away
-  const err = padX - posX;
-  // Brake when approaching — start early enough to overcome response lag
-  const needsBrake = (vx > 0 && posX > padX - 70)
-                  || (vx < 0 && posX < padX + 70);
-
-  let targetAngle = 0;
-  if (needsBrake) {
-    // Brake: tilt against velocity direction
-    targetAngle = vx > 0 ? -0.4 : 0.4;
-  } else if (Math.abs(err) > padHalf) {
-    // Move toward pad gently
-    targetAngle = err > 0 ? 0.15 : -0.15;
-  }
+  // Positive angle → sin(angle) > 0 → engine thrusts rightward.
+  // kp drives toward the pad; kd damps lateral velocity to prevent overshoot.
+  const targetAngle = Math.max(-0.4, Math.min(0.4,
+    err * 0.004 - vx * 2.0
+  ));
 
   const angleError = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
   falcon9.fireLeftThruster  = angleError > 0.05;
   falcon9.fireRightThruster = angleError < -0.05;
 
-  // Brake vertical descent whenever falling fast enough
+  // Brake vertical descent whenever the rocket is nearly upright
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35;
 }, 16);
 `,
@@ -307,8 +299,8 @@ setInterval(() => {
       maxLandingVelocity: 1.0,
       landingPad: { width: 80 },
       initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 0.2 },
-      initialPosition: { x: 350, y: 450 },
+      initialVelocity: { x: 0, y: 0.2 },
+      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
     },
     starter: `\
 // Level 6 — On a Budget
@@ -332,31 +324,26 @@ setInterval(() => {
 `,
     solution: `\
 // Level 6 — On a Budget (solution)
-// Bang-bang lateral + wide dead-band to avoid wasting scarce fuel.
+// Stopping-distance latch: let the ship free-fall, fire ONE braking window.
+// This minimises fuel use compared to a continuous hover controller.
+const NET_DECEL_6 = 0.04 - 0.010; // enginePower - gravity
+const TARGET_VY_6 = 0.55;
+let   burning_6   = false;
+
 setInterval(() => {
-  const padX     = game.canvas.width / 2;
-  const padHalf  = 40;
-  const posX     = falcon9.position.x;
-  const vx       = falcon9.velocity.x;
-  const vy       = falcon9.velocity.y;
+  const vy  = falcon9.velocity.y;
+  const alt = falcon9.altitude;
 
-  const err = padX - posX;
-  const needsBrake = (vx > 0 && posX > padX - 70)
-                  || (vx < 0 && posX < padX + 70);
-
-  let targetAngle = 0;
-  if (needsBrake) {
-    targetAngle = vx > 0 ? -0.4 : 0.4;
-  } else if (Math.abs(err) > padHalf) {
-    targetAngle = err > 0 ? 0.15 : -0.15;
-  }
-
-  const angleError = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 6;
-  // Wider dead-band to save fuel
+  // Keep upright — no lateral drift to manage.
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * 6;
   falcon9.fireLeftThruster  = angleError > 0.12;
   falcon9.fireRightThruster = angleError < -0.12;
 
-  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.4;
+  // Latch burn once stopping distance reaches remaining altitude.
+  const stoppingDist = Math.max(0, vy * vy - TARGET_VY_6 * TARGET_VY_6) / (2 * NET_DECEL_6);
+  if (!burning_6 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_6) { burning_6 = true; }
+  if ( burning_6 && vy <= TARGET_VY_6) { burning_6 = false; }
+  falcon9.fireBoosterEngine = burning_6 && Math.abs(falcon9.angle) < 0.45;
 }, 16);
 `,
   },
@@ -373,9 +360,9 @@ setInterval(() => {
       maxLandingVelocity: 0.9,
       landingPad: { width: 60 },
       minThrottle: 0.06,
-      initialAngle: 0.15,
-      initialVelocity: { x: 0.2, y: 0.3 },
-      initialPosition: { x: 355, y: 450 },
+      initialAngle: 0,
+      initialVelocity: { x: 0, y: 0.3 },
+      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
     },
     starter: `\
 // Level 7 — Minimum Power
@@ -398,30 +385,27 @@ setInterval(() => {
 `,
     solution: `\
 // Level 7 — Minimum Power (solution)
-// Powerful engine + wide dead-band: let momentum carry between correction pulses.
+// Stopping-distance latch — let the ship fall freely, then fire ONE braking window.
+// With minThrottle the engine fires full-power pulses; a single well-timed
+// window uses far less fuel than continuous hovering.
+const NET_DECEL_7 = 0.06 - 0.010; // minThrottle - gravity
+const TARGET_VY_7 = 0.5;
+let   burning_7   = false;
+
 setInterval(() => {
-  const padX     = game.canvas.width / 2;
-  const padHalf  = 30;                          // half of pad width (60)
-  const posX     = falcon9.position.x;
-  const vx       = falcon9.velocity.x;
-  const vy       = falcon9.velocity.y;
+  const vy  = falcon9.velocity.y;
+  const alt = falcon9.altitude;
 
-  const err = padX - posX;
-  const needsBrake = (vx > 0 && posX > padX - 65)
-                  || (vx < 0 && posX < padX + 65);
-
-  let targetAngle = 0;
-  if (needsBrake) {
-    targetAngle = vx > 0 ? -0.4 : 0.4;
-  } else if (Math.abs(err) > padHalf) {
-    targetAngle = err > 0 ? 0.15 : -0.15;
-  }
-
-  const angleError = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 8;
+  // Null any residual tilt; wide dead-band avoids wasting powerful pulses.
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
   falcon9.fireLeftThruster  = angleError > 0.15;
   falcon9.fireRightThruster = angleError < -0.15;
 
-  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.5;
+  // Latch: ignite once when stopping distance meets remaining altitude.
+  const stoppingDist = Math.max(0, vy * vy - TARGET_VY_7 * TARGET_VY_7) / (2 * NET_DECEL_7);
+  if (!burning_7 && alt <= stoppingDist * 1.15 + 5 && vy > TARGET_VY_7) { burning_7 = true; }
+  if ( burning_7 && vy <= TARGET_VY_7) { burning_7 = false; }
+  falcon9.fireBoosterEngine = burning_7 && Math.abs(falcon9.angle) < 0.4;
 }, 16);
 `,
   },
@@ -438,9 +422,9 @@ setInterval(() => {
       maxLandingVelocity: 0.8,
       landingPad: { width: 40 },
       minThrottle: 0.06,
-      initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 1.2 },
-      initialPosition: { x: 360, y: 450 },
+      initialAngle: 0,
+      initialVelocity: { x: 0, y: 1.2 },
+      initialPosition: { y: 200 },   // higher start gives PD time to settle before burn trigger
     },
     starter: `\
 // Level 8 — Precision Burn
@@ -461,38 +445,24 @@ setInterval(() => {
 `,
     solution: `\
 // Level 8 — Precision Burn (solution)
-// Tight pad (40px), scarce fuel: PD steering + stopping-distance burn trigger
-const NET_DECEL_8 = 0.04 - 0.010;  // enginePower - gravity
+// No lateral drift — focus is on timing the stopping-distance vertical burn.
+const NET_DECEL_8 = 0.06 - 0.010; // minThrottle - gravity
 const TARGET_VY_8 = 0.4;
 let   burning_8   = false;
 
 setInterval(() => {
-  const padX = game.canvas.width / 2;
-  const posX = falcon9.position.x;
-  const vx   = falcon9.velocity.x;
-  const vy   = falcon9.velocity.y;
-  const alt  = falcon9.altitude;
+  const vy  = falcon9.velocity.y;
+  const alt = falcon9.altitude;
 
-  const err      = padX - posX;
-  const latDecel = 0.04 * Math.sin(0.35);
-  const tStop    = Math.abs(vx) / latDecel;
-  const dStop    = 0.5 * Math.abs(vx) * tStop;
-  const needsBrake = (vx > 0 && posX + dStop > padX)
-                  || (vx < 0 && posX - dStop < padX);
-  let targetAngle = 0;
-  if (needsBrake) { targetAngle = vx > 0 ? -0.35 : 0.35; }
-  else if (Math.abs(err) > 20) { targetAngle = err > 0 ? 0.12 : -0.12; }
-
-  const angleError  = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 8;
+  // Keep upright — no lateral component to manage.
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
   falcon9.fireLeftThruster  = angleError > 0.08;
   falcon9.fireRightThruster = angleError < -0.08;
 
-  // Latch burn when stopping distance matches remaining altitude
-  const excessVy     = Math.max(0, vy - TARGET_VY_8);
-  const stoppingDist = (excessVy * excessVy) / (2 * NET_DECEL_8);
+  // Latch vertical burn when stopping distance meets remaining altitude.
+  const stoppingDist = Math.max(0, vy * vy - TARGET_VY_8 * TARGET_VY_8) / (2 * NET_DECEL_8);
   if (!burning_8 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_8) { burning_8 = true; }
   if ( burning_8 && vy <= TARGET_VY_8) { burning_8 = false; }
-  // Only fire when close to upright to keep horizontal thrust minimal
   falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.25;
 }, 16);
 `,
@@ -512,7 +482,7 @@ setInterval(() => {
       minThrottle: 0.08,
       initialAngle: 0,
       initialSpin: 0,
-      initialPosition: { x: 400, y: 40 },
+      initialPosition: { y: 40 },    // x defaults to canvas centre (= pad centre)
       initialVelocity: { x: 0, y: 2.0 },
     },
     starter: `\

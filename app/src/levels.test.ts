@@ -12,11 +12,34 @@
  * The simulator is deterministic for levels with fixed spawn parameters; levels
  * with random spawn (L3's random angle, L6's random position) run 5 trials and
  * require a ≥80% pass rate.
+ *
+ * Canvas-size coverage
+ * --------------------
+ * The game iframe fills one half of the player's browser window, so its pixel
+ * dimensions vary widely across devices and layouts.  Every solution is tested
+ * against a representative matrix of canvas sizes (CANVAS_PROFILES) in addition
+ * to the default 800×600 baseline.  This catches controller logic that
+ * hard-codes pixel values or relies on canvas geometry implicitly.
  */
 
 import { describe, it, expect } from "vitest";
 import { LEVELS } from "./levels.js";
 import { simulate, type SimState, type ControllerFn } from "./simulator.js";
+
+// ── Canvas size profiles ──────────────────────────────────────────────────────
+//
+// Each entry represents a plausible browser game-panel size a player might see.
+// Range covers the default simulator baseline (800×600) through a 1440p
+// half-screen, in both landscape and near-square aspect ratios.
+const CANVAS_PROFILES: Array<{ label: string; w: number; h: number }> = [
+  { label: "800×600  (baseline)",           w:  800, h:  600 },
+  { label: "640×700  (compact laptop)",     w:  640, h:  700 },
+  { label: "720×800  (small laptop)",       w:  720, h:  800 },
+  { label: "900×750  (medium laptop)",      w:  900, h:  750 },
+  { label: "1000×850 (large laptop)",       w: 1000, h:  850 },
+  { label: "1100×900 (1080p half-screen)",  w: 1100, h:  900 },
+  { label: "1280×960 (1440p half-screen)",  w: 1280, h:  960 },
+];
 
 // ── Solution compiler ─────────────────────────────────────────────────────────
 //
@@ -96,7 +119,6 @@ function compileController(
 
 interface TrialOptions {
   trials?: number;
-  minPassRate?: number; // 0-1
   canvasWidth?: number;
   canvasHeight?: number;
 }
@@ -105,7 +127,7 @@ function runTrials(
   levelIndex: number,
   opts: TrialOptions = {},
 ) {
-  const { trials = 1, minPassRate = 1.0, canvasWidth = 800, canvasHeight = 600 } = opts;
+  const { trials = 1, canvasWidth = 800, canvasHeight = 600 } = opts;
   const { config, solution } = LEVELS[levelIndex];
 
   let passed = 0;
@@ -120,86 +142,83 @@ function runTrials(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Tests
+// Canvas-size sweep — all solutions must pass at every viewport profile
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe("Level solutions", () => {
-  it("L1 — Hello, Moon: solution lands successfully", () => {
-    const { passRate } = runTrials(0);
-    expect(passRate).toBe(1);
-  });
+describe.each(CANVAS_PROFILES)(
+  "Level solutions — $label",
+  ({ w, h }) => {
+    it("L1 — Hello, Moon: solution lands", () => {
+      expect(runTrials(0, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
+    });
 
-  it("L2 — Tilted: solution corrects angle and lands", () => {
-    const { passRate } = runTrials(1);
-    expect(passRate).toBe(1);
-  });
+    it("L2 — Tilted: solution corrects angle and lands", () => {
+      expect(runTrials(1, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
+    });
 
-  it("L3 — Steady the Ship: solution wins ≥80% of random spawns", () => {
-    const { passRate } = runTrials(2, { trials: 10, minPassRate: 0.8 });
-    expect(passRate).toBeGreaterThanOrEqual(0.8);
-  });
+    it("L3 — Steady the Ship: solution wins ≥80% of random spawns", () => {
+      const { passRate } = runTrials(2, { trials: 10, canvasWidth: w, canvasHeight: h });
+      expect(passRate).toBeGreaterThanOrEqual(0.8);
+    });
 
-  it("L4 — Lateral Drift: solution cancels drift and lands", () => {
-    const { passRate } = runTrials(3);
-    expect(passRate).toBe(1);
-  });
+    it("L4 — Lateral Drift: solution cancels drift and lands", () => {
+      expect(runTrials(3, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
+    });
 
-  it("L5 — Bullseye: solution hits the pad", () => {
-    const { passRate } = runTrials(4);
-    expect(passRate).toBe(1);
-  });
+    it("L5 — Bullseye: solution hits and lands ON the pad", () => {
+      const { config, solution } = LEVELS[4];
+      const controller = compileController(solution, 4, w, h);
+      const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
+      expect(result.won).toBe(true);
+      expect(result.onPad).toBe(true);
+    });
 
-  it("L5 — Bullseye: solution lands ON the pad (onPad check)", () => {
-    const { config, solution } = LEVELS[4];
-    const controller = compileController(solution, 4);
-    const result = simulate(config, controller);
-    expect(result.onPad).toBe(true);
-  });
+    it("L6 — On a Budget: solution wins within fuel budget", () => {
+      const { config, solution } = LEVELS[5];
+      const controller = compileController(solution, 5, w, h);
+      const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
+      expect(result.won).toBe(true);
+      expect(result.fuelUsed).toBeLessThan(config.fuel as number);
+    });
 
-  it("L6 — On a Budget: solution wins without running out of fuel", () => {
-    const { config, solution } = LEVELS[5];
-    const controller = compileController(solution, 5);
-    const result = simulate(config, controller);
-    expect(result.won).toBe(true);
-    expect(result.fuelUsed).toBeLessThan(config.fuel as number);
-  });
+    it("L7 — Minimum Power: solution wins ≥80% of spawns", () => {
+      const { passRate } = runTrials(6, { trials: 3, canvasWidth: w, canvasHeight: h });
+      expect(passRate).toBeGreaterThanOrEqual(0.8);
+    });
 
-  it("L7 — Minimum Power: solution handles minThrottle constraint", () => {
-    const { passRate } = runTrials(6, { trials: 3, minPassRate: 0.8 });
-    expect(passRate).toBeGreaterThanOrEqual(0.8);
-  });
+    it("L8 — Precision Burn: solution hits the 40px pad", () => {
+      const { config, solution } = LEVELS[7];
+      const controller = compileController(solution, 7, w, h);
+      const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
+      expect(result.won).toBe(true);
+      expect(result.onPad).toBe(true);
+    });
 
-  it("L8 — Precision Burn: solution lands on narrow 40px pad", () => {
-    const { config, solution } = LEVELS[7];
-    const controller = compileController(solution, 7);
-    const result = simulate(config, controller);
-    expect(result.won).toBe(true);
-    expect(result.onPad).toBe(true);
-  });
+    it("L9 — The Long Fall: solution wins within fuel budget", () => {
+      const { config, solution } = LEVELS[8];
+      const controller = compileController(solution, 8, w, h);
+      const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
+      expect(result.won).toBe(true);
+      expect(result.fuelUsed).toBeLessThan(config.fuel as number);
+    });
 
-  it("L9 — The Long Fall: solution computes burn window and wins", () => {
-    const { config, solution } = LEVELS[8];
-    const controller = compileController(solution, 8);
-    const result = simulate(config, controller);
-    expect(result.won).toBe(true);
-    expect(result.fuelUsed).toBeLessThan(config.fuel as number);
-  });
+    it("L10 — Hoverslam: solution wins within fuel budget", () => {
+      const { config, solution } = LEVELS[9];
+      const controller = compileController(solution, 9, w, h);
+      const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
+      expect(result.won).toBe(true);
+      expect(result.fuelUsed).toBeLessThan(config.fuel as number);
+    });
+  },
+);
 
-  it("L10 — Hoverslam: solution fires a single burn and wins", () => {
-    const { config, solution } = LEVELS[9];
-    const controller = compileController(solution, 9);
-    const result = simulate(config, controller);
-    expect(result.won).toBe(true);
-    expect(result.fuelUsed).toBeLessThan(config.fuel as number);
-  });
+// ── Regression: no solution times out ────────────────────────────────────────
 
-  // ── Regression: no solution times out ───────────────────────────────────
-  it("all solutions land within 18 000 frames", () => {
-    for (let i = 0; i < LEVELS.length; i++) {
-      const { config, solution } = LEVELS[i];
-      const controller = compileController(solution, i);
-      const result = simulate(config, controller, { maxFrames: 18_000 });
-      expect(result.reason, `Level ${i + 1} timed out`).toBe("landed");
-    }
-  });
+it("all solutions land within 18 000 frames", () => {
+  for (let i = 0; i < LEVELS.length; i++) {
+    const { config, solution } = LEVELS[i];
+    const controller = compileController(solution, i);
+    const result = simulate(config, controller, { maxFrames: 18_000 });
+    expect(result.reason, `Level ${i + 1} timed out`).toBe("landed");
+  }
 });
