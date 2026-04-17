@@ -16,12 +16,12 @@ test.describe("Editor page", () => {
     await expect(page.locator("#header-badge")).toBeVisible();
   });
 
-  test("level selector is populated with 10 levels", async ({ page }) => {
+  test("level selector is populated with 11 levels", async ({ page }) => {
     await page.goto("/");
     const options = page.locator("#level-select option");
-    await expect(options).toHaveCount(10);
-    // First option should reference Level 1
-    await expect(options.first()).toContainText("1.");
+    await expect(options).toHaveCount(11);
+    // First option should reference Level 0 (Tutorial)
+    await expect(options.first()).toContainText("0.");
     // Last option should reference Level 10
     await expect(options.last()).toContainText("10.");
   });

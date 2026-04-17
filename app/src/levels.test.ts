@@ -131,14 +131,16 @@ function runTrials(
   const { config, solution } = LEVELS[levelIndex];
 
   let passed = 0;
+  let maxFrames = 0;
   for (let t = 0; t < trials; t++) {
     const controller = compileController(solution, levelIndex, canvasWidth, canvasHeight);
     const result = simulate(config, controller, { canvasWidth, canvasHeight });
     if (result.won) passed++;
+    if (result.frames > maxFrames) maxFrames = result.frames;
   }
 
   const passRate = passed / trials;
-  return { passed, trials, passRate };
+  return { passed, trials, passRate, maxFrames };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,63 +150,71 @@ function runTrials(
 describe.each(CANVAS_PROFILES)(
   "Level solutions — $label",
   ({ w, h }) => {
-    it("L1 — Hello, Moon: solution lands", () => {
+    it("L0 — Tutorial: auto-pilot solution lands", () => {
       expect(runTrials(0, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
     });
 
-    it("L2 — Tilted: solution corrects angle and lands", () => {
+    it("L1 — Hello, Moon: solution lands", () => {
       expect(runTrials(1, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
     });
 
+    it("L2 — Tilted: solution corrects angle and lands", () => {
+      expect(runTrials(2, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
+    });
+
     it("L3 — Steady the Ship: solution wins ≥80% of random spawns", () => {
-      const { passRate } = runTrials(2, { trials: 10, canvasWidth: w, canvasHeight: h });
+      const { passRate } = runTrials(3, { trials: 10, canvasWidth: w, canvasHeight: h });
       expect(passRate).toBeGreaterThanOrEqual(0.8);
     });
 
     it("L4 — Lateral Drift: solution cancels drift and lands", () => {
-      expect(runTrials(3, { canvasWidth: w, canvasHeight: h }).passRate).toBe(1);
+      const { passRate, maxFrames } = runTrials(4, { canvasWidth: w, canvasHeight: h });
+      expect(passRate).toBe(1);
+      // Guard against solutions that "work" by launching to space and falling back.
+      // A direct descent from y=80 should land in well under 2 000 frames.
+      expect(maxFrames).toBeLessThan(2_000);
     });
 
     it("L5 — Bullseye: solution hits and lands ON the pad", () => {
-      const { config, solution } = LEVELS[4];
-      const controller = compileController(solution, 4, w, h);
+      const { config, solution } = LEVELS[5];
+      const controller = compileController(solution, 5, w, h);
       const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
       expect(result.won).toBe(true);
       expect(result.onPad).toBe(true);
     });
 
     it("L6 — On a Budget: solution wins within fuel budget", () => {
-      const { config, solution } = LEVELS[5];
-      const controller = compileController(solution, 5, w, h);
+      const { config, solution } = LEVELS[6];
+      const controller = compileController(solution, 6, w, h);
       const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
       expect(result.won).toBe(true);
       expect(result.fuelUsed).toBeLessThan(config.fuel as number);
     });
 
     it("L7 — Minimum Power: solution wins ≥80% of spawns", () => {
-      const { passRate } = runTrials(6, { trials: 3, canvasWidth: w, canvasHeight: h });
+      const { passRate } = runTrials(7, { trials: 3, canvasWidth: w, canvasHeight: h });
       expect(passRate).toBeGreaterThanOrEqual(0.8);
     });
 
     it("L8 — Precision Burn: solution hits the 40px pad", () => {
-      const { config, solution } = LEVELS[7];
-      const controller = compileController(solution, 7, w, h);
+      const { config, solution } = LEVELS[8];
+      const controller = compileController(solution, 8, w, h);
       const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
       expect(result.won).toBe(true);
       expect(result.onPad).toBe(true);
     });
 
     it("L9 — The Long Fall: solution wins within fuel budget", () => {
-      const { config, solution } = LEVELS[8];
-      const controller = compileController(solution, 8, w, h);
+      const { config, solution } = LEVELS[9];
+      const controller = compileController(solution, 9, w, h);
       const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
       expect(result.won).toBe(true);
       expect(result.fuelUsed).toBeLessThan(config.fuel as number);
     });
 
     it("L10 — Hoverslam: solution wins within fuel budget", () => {
-      const { config, solution } = LEVELS[9];
-      const controller = compileController(solution, 9, w, h);
+      const { config, solution } = LEVELS[10];
+      const controller = compileController(solution, 10, w, h);
       const result = simulate(config, controller, { canvasWidth: w, canvasHeight: h });
       expect(result.won).toBe(true);
       expect(result.fuelUsed).toBeLessThan(config.fuel as number);
@@ -219,6 +229,6 @@ it("all solutions land within 18 000 frames", () => {
     const { config, solution } = LEVELS[i];
     const controller = compileController(solution, i);
     const result = simulate(config, controller, { maxFrames: 18_000 });
-    expect(result.reason, `Level ${i + 1} timed out`).toBe("landed");
+    expect(result.reason, `${config.id} timed out`).toBe("landed");
   }
 });

@@ -38,7 +38,7 @@ interface MonacoEditor {
 LEVELS.forEach(({ config }, i) => {
   const opt = document.createElement("option");
   opt.value = String(i);
-  opt.textContent = `${i + 1}. ${config.id ?? `Level ${i + 1}`}`;
+  opt.textContent = `${i}. ${config.id ?? `Level ${i}`}`;
   levelSelect.appendChild(opt);
 });
 

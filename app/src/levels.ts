@@ -20,6 +20,58 @@ export interface LevelData {
 }
 
 export const LEVELS: LevelData[] = [
+  // ── Level 0 — "Tutorial" ──────────────────────────────────────────────────
+  {
+    config: {
+      id: "Tutorial",
+      gravity: 0.003,
+      fuel: Infinity,
+      fuelConsumptionRate: 0,
+      enginePower: 0.04,
+      canReignite: true,
+      maxLandingVelocity: 5.0,
+      initialAngle: 0,
+      initialVelocity: { x: 0, y: 0.8 },
+    },
+    starter: `\
+// Level 0 — Tutorial: Fly with Your Keyboard
+// Welcome to Moon Lander! Use the arrow keys to fly the rocket
+// and get a feel for the controls before you start writing code.
+//
+//   ↑ Arrow / Space — main booster engine (thrust up)
+//   ← Arrow         — left thruster (rotates counter-clockwise)
+//   → Arrow         — right thruster (rotates clockwise)
+//
+// When you're ready to automate the landing, move on to Level 1.
+// Hit "Show Solution" to see a simple automatic controller!
+
+// Track which keys are currently held down
+const keys = new Set();
+document.addEventListener("keydown", (e) => { keys.add(e.code); e.preventDefault(); });
+document.addEventListener("keyup",   (e) => keys.delete(e.code));
+
+setInterval(() => {
+  falcon9.fireBoosterEngine = keys.has("ArrowUp") || keys.has("Space");
+  falcon9.fireLeftThruster  = keys.has("ArrowLeft");
+  falcon9.fireRightThruster = keys.has("ArrowRight");
+}, 16);
+`,
+    solution: `\
+// Level 0 — Tutorial (auto-pilot)
+// Here's what a simple automatic controller looks like.
+// It keeps the ship upright and slows the descent — no keyboard needed!
+setInterval(() => {
+  // Keep the ship upright using a PD controller
+  const error = falcon9.angle + falcon9.rotationalMomentum * 5;
+  falcon9.fireLeftThruster  = error > 0.05;
+  falcon9.fireRightThruster = error < -0.05;
+
+  // Fire the booster to slow descent when roughly upright
+  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.3 && falcon9.velocity.y > 1.0;
+}, 16);
+`,
+  },
+
   // ── Level 1 — "Hello, Moon" ───────────────────────────────────────────────
   {
     config: {
@@ -218,9 +270,9 @@ setInterval(() => {
 
   falcon9.fireLeftThruster  = error > 0.05;
   falcon9.fireRightThruster = error < -0.05;
-  // Brake whenever descending OR still drifting, no altitude limit (infinite fuel)
-  falcon9.fireBoosterEngine = Math.abs(error) < 0.3
-    && (vy > 0.5 || Math.abs(vx) > 0.2);
+  // Pulse-brake: only fire when descent speed nears the landing limit.
+  // Too low a threshold keeps the engine on all the way down (painfully slow).
+  falcon9.fireBoosterEngine = Math.abs(error) < 0.3 && vy > 0.7;
 }, 16);
 `,
   },

@@ -58,14 +58,14 @@ test.describe("Game outcomes", () => {
   test("crash landing shows a failure overlay inside the iframe", async ({ page }) => {
     await page.addInitScript(() => {
       // Code that intentionally does nothing — rocket free-falls and crashes
-      localStorage.setItem("lander:code:level9", "// intentional crash — no engine");
+      localStorage.setItem("lander:code:level10", "// intentional crash — no engine");
     });
 
     await page.goto("/");
     await page.locator("#editor .monaco-editor").waitFor({ timeout: 20_000 });
 
-    // Select Level 10 (index 9) so the free-fall definitely exceeds maxLandingVelocity
-    await page.locator("#level-select").selectOption("9");
+    // Select Level 10 (index 10) so the free-fall definitely exceeds maxLandingVelocity
+    await page.locator("#level-select").selectOption("10");
 
     await page.locator("#run").click();
     await page.locator("#game-container iframe").waitFor();
@@ -95,7 +95,7 @@ setInterval(() => {
 }, 16);`;
 
     await page.addInitScript((code) => {
-      localStorage.setItem("lander:code:level0", code);
+      localStorage.setItem("lander:code:level1", code);
     }, level1Solution);
 
     await page.goto("/");
