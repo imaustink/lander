@@ -472,55 +472,70 @@ falcon9.registerController(() => {
     config: {
       id: "Precision Burn",
       gravity: 0.010,
-      fuel: 250,
-      fuelConsumptionRate: 0.07,
+      fuel: 180,
+      fuelConsumptionRate: 0.09,
       enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 0.8,
+      canReignite: false,          // ONE ignition only — cut it and it's gone
+      maxLandingVelocity: 0.7,
       landingPad: { width: 40 },
-      minThrottle: 0.06,
+      minThrottle: 0.07,
       initialAngle: 0,
-      initialVelocity: { x: 0, y: 1.2 },
-      initialPosition: { y: 200 },   // higher start gives PD time to settle before burn trigger
+      initialSpin: 0.05,
+      initialVelocity: { x: 0, y: 1.5 },
+      initialPosition: { y: 150 },
     },
     starter: `\
 // Level 8 — Precision Burn
-// Narrow 40px pad, faster initial approach, and scarce fuel.
-// Reactive loops fail here — your script must reason about WHEN to burn,
-// not just WHETHER to burn.
+// canReignite = false: the engine fires ONCE. Cut it and it never restarts.
 //
-// Hint: compute how long a burn needs to last to achieve the desired delta-v,
-// rather than running the engine continuously.
+// Physics for this level:
+//   minThrottle = 0.07   |   gravity = 0.010
+//   net_decel   = 0.07 - 0.010 = 0.060
+//
+// If you cut the engine too early (at vy = 0.5 like Level 7), gravity
+// accelerates you back above the landing-velocity limit before you touch down.
+// You must burn all the way down to a very low vy before cutting.
+//
+// Strategy: latch ignition when stopping distance ≈ altitude,
+//           then let the burn continue until vy is very low.
+
+const NET_DECEL = 0.07 - 0.010;
+const TARGET_VY = /* aim lower than you think — gravity still acts after the burn */;
+let   burning   = false;
 
 falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
-  // TODO: predictive burn scheduling
-  falcon9.fireBoosterEngine = false;
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
+  falcon9.fireLeftThruster  = angleError > 0.07;
+  falcon9.fireRightThruster = angleError < -0.07;
+
+  const stoppingDist = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * NET_DECEL);
+  if (!burning && alt <= stoppingDist * 1.15 + 3 && vy > TARGET_VY) { burning = true; }
+  if ( burning && vy <= TARGET_VY) { burning = false; }
+  falcon9.fireBoosterEngine = burning && Math.abs(falcon9.angle) < 0.3;
 });
 `,
     solution: `\
 // Level 8 — Precision Burn (solution)
-// No lateral drift — focus is on timing the stopping-distance vertical burn.
-const NET_DECEL_8 = 0.06 - 0.010; // minThrottle - gravity
-const TARGET_VY_8 = 0.4;
+// canReignite = false: burn to a very low vy so residual fall velocity stays within budget.
+const NET_DECEL_8 = 0.07 - 0.010;
+const TARGET_VY_8 = 0.1;   // burn deep — gravity adds ~0.5 after the engine cuts
 let   burning_8   = false;
 
 falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
-  // Keep upright — no lateral component to manage.
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
-  falcon9.fireLeftThruster  = angleError > 0.08;
-  falcon9.fireRightThruster = angleError < -0.08;
+  falcon9.fireLeftThruster  = angleError > 0.07;
+  falcon9.fireRightThruster = angleError < -0.07;
 
-  // Latch vertical burn when stopping distance meets remaining altitude.
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_8 * TARGET_VY_8) / (2 * NET_DECEL_8);
-  if (!burning_8 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_8) { burning_8 = true; }
+  if (!burning_8 && alt <= stoppingDist * 1.15 + 3 && vy > TARGET_VY_8) { burning_8 = true; }
   if ( burning_8 && vy <= TARGET_VY_8) { burning_8 = false; }
-  falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.25;
+  falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.3;
 });
 `,
   },
@@ -530,58 +545,64 @@ falcon9.registerController(() => {
     config: {
       id: "The Long Fall",
       gravity: 0.010,
-      fuel: 200,
-      fuelConsumptionRate: 0.08,
+      fuel: 250,
+      fuelConsumptionRate: 0.09,
       enginePower: 0.04,
-      canReignite: true,
-      maxLandingVelocity: 0.7,
+      canReignite: false,          // still no second chances
+      maxLandingVelocity: 0.6,
       landingPad: { width: 40 },
       minThrottle: 0.08,
       initialAngle: 0,
-      initialSpin: 0,
-      initialPosition: { y: 40 },    // x defaults to canvas centre (= pad centre)
+      initialSpin: 0.08,
+      initialPosition: { y: 40 },
       initialVelocity: { x: 0, y: 2.0 },
     },
     starter: `\
 // Level 9 — The Long Fall
-// High-altitude drop, velocity.y = 2.0, fuel = 200.
-// Every ill-timed burn wastes irreplaceable fuel.
-// Manual / reactive control is nearly impossible — you need an algorithm
-// that computes burn windows based on altitude and velocity.
+// canReignite = false again, but now vy = 2.0 and the engine fires at 0.08.
 //
-// Key insight:
-//   stopping_distance = vy² / (2 × net_decel)
-//   net_decel = minThrottle - gravity
+//   net_decel = 0.08 - 0.010 = 0.070
 //
-// Start the burn when altitude ≤ stopping_distance.
+// maxLandingVelocity is now 0.6 — even tighter than Level 8.
+// The Level 8 target velocity (0.1) barely keeps you within budget here
+// because the longer fall after the burn adds more speed.
+//
+// You need to compute the EXACT right target velocity for this level's
+// altitude and fall dynamics. Hint: think about how fast gravity accelerates
+// you after the engine cuts, and how far you still fall.
+
+const NET_DECEL = 0.08 - 0.010;
+let   burning   = false;
 
 falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
-  const NET_DECEL = 0.08 - 0.010; // minThrottle - gravity
-  const stoppingDist = /* ??? */;
+  // Kill spin with thrusters first
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * /* gain */ 0;
+  falcon9.fireLeftThruster  = /* ??? */ false;
+  falcon9.fireRightThruster = /* ??? */ false;
 
+  // Then latch the burn
+  const stoppingDist = /* ??? */;
   falcon9.fireBoosterEngine = /* ??? */;
 });
 `,
     solution: `\
 // Level 9 — The Long Fall (solution)
-// One-shot suicide burn: latch ignition when stopping distance ≥ altitude.
-// A burn latch prevents oscillation from re-triggering the engine.
+// Use a tighter TARGET_VY to account for post-burn gravity acceleration.
 const NET_DECEL_9 = 0.08 - 0.010;
-const TARGET_VY_9 = 0.35;
+const TARGET_VY_9 = 0.05;  // burn almost to a stop
 let   burning_9   = false;
 
 falcon9.registerController(() => {
   const vy   = falcon9.velocity.y;
   const alt  = falcon9.altitude;
 
-  const angleError = falcon9.angle + falcon9.rotationalMomentum * 6;
+  const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
   falcon9.fireLeftThruster  = angleError > 0.06;
   falcon9.fireRightThruster = angleError < -0.06;
 
-  // Latch: ignite once when stopping distance exceeds remaining altitude
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_9 * TARGET_VY_9) / (2 * NET_DECEL_9);
   if (!burning_9 && alt <= stoppingDist * 1.1 && vy > TARGET_VY_9) {
     burning_9 = true;

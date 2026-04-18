@@ -1,3 +1,6 @@
+# Playwright MCP server data
+.playwright-mcp/
+
 # Logs
 logs
 *.log

@@ -185,13 +185,22 @@ require(["vs/editor/editor.main"], function () {
     iframe.style.border = "none";
     iframe.style.display = "block";
 
-    // Bootstrap script: tell the game which level to load, then run user code
+    // Bootstrap script: the user's guidance code (window.falcon9 will already
+    // exist when this runs because game.start() is called first below).
     const bootstrap = document.createElement("script");
-    bootstrap.textContent = `window.__startLevel = ${currentLevel};\n${code}`;
+    bootstrap.textContent = code;
 
     iframe.onload = () => {
+      // Set the target level and start the game FIRST.  loadLevel() is
+      // synchronous, so onLevelLoad fires inline and window.falcon9 is set
+      // before we append the user script on the next line.
+      const iframeWin = iframe.contentWindow as Window & {
+        __startLevel?: number;
+        game: { start(): void };
+      };
+      iframeWin.__startLevel = currentLevel;
+      iframeWin.game.start();
       iframe.contentDocument!.head.appendChild(bootstrap);
-      (iframe.contentWindow as Window & { game: { start(): void } }).game.start();
       iframe.contentWindow!.focus();
       gamePlaceholder.style.opacity = "0";
       gameDot.classList.add("active");

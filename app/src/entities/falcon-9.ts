@@ -52,6 +52,7 @@ export class Falcon9 implements Entity {
   private _boosterSealed = false;
   private _cheater = false;
   private _legDeployRatio = 0; // 0 = stowed, 1 = fully deployed
+  private _gimbalAngle = 0;    // TVC nozzle deflection in radians
   private _game!: GameEngine;
 
   constructor(game: GameEngine, options: Falcon9Options = {}) {
@@ -177,6 +178,13 @@ export class Falcon9 implements Entity {
     this._updateAngle(t, leftActive, rightActive, level.gravity);
     this._updateVelocity(t, boosterActive, level.gravity, level.minThrottle ?? this.enginePower);
     this._updatePosition(t, game);
+
+    // Smooth TVC gimbal angle: ±0.2 rad based on active thrusters
+    const GIMBAL_MAX = 0.2;
+    const targetGimbal = (leftActive && !rightActive) ? GIMBAL_MAX
+                       : (rightActive && !leftActive) ? -GIMBAL_MAX
+                       : 0;
+    this._gimbalAngle += (targetGimbal - this._gimbalAngle) * Math.min(1, dt / 80);
 
     // Animate landing legs: deploy below 150 units altitude (~0.9s unfold)
     const DEPLOY_ALTITUDE = 150;
@@ -394,6 +402,12 @@ export class Falcon9 implements Entity {
     const flameLen = 14 + Math.random() * 20 * scale;
     const flickerX = (Math.random() - 0.5) * 4;
 
+    // Apply TVC gimbal rotation around the nozzle exit
+    ctx.save();
+    ctx.translate(0, flameOriginY);
+    ctx.rotate(this._gimbalAngle);
+    ctx.translate(0, -flameOriginY);
+
     // Outer plume (orange)
     ctx.beginPath();
     ctx.moveTo(-nozzleBotW, flameOriginY);
@@ -434,6 +448,8 @@ export class Falcon9 implements Entity {
     ctx.closePath();
     ctx.fillStyle = "rgba(255, 255, 240, 1)";
     ctx.fill();
+
+    ctx.restore();
   }
 
   private _drawCheaterOverlay(ctx: CanvasRenderingContext2D, game: GameEngine): void {
