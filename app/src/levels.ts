@@ -50,17 +50,17 @@ const keys = new Set();
 document.addEventListener("keydown", (e) => { keys.add(e.code); e.preventDefault(); });
 document.addEventListener("keyup",   (e) => keys.delete(e.code));
 
-setInterval(() => {
+falcon9.registerController(() => {
   falcon9.fireBoosterEngine = keys.has("ArrowUp") || keys.has("Space");
   falcon9.fireLeftThruster  = keys.has("ArrowLeft");
   falcon9.fireRightThruster = keys.has("ArrowRight");
-}, 16);
+});
 `,
     solution: `\
 // Level 0 — Tutorial (auto-pilot)
 // Here's what a simple automatic controller looks like.
 // It keeps the ship upright and slows the descent — no keyboard needed!
-setInterval(() => {
+falcon9.registerController(() => {
   // Keep the ship upright using a PD controller
   const error = falcon9.angle + falcon9.rotationalMomentum * 5;
   falcon9.fireLeftThruster  = error > 0.05;
@@ -68,7 +68,7 @@ setInterval(() => {
 
   // Fire the booster to slow descent when roughly upright
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.3 && falcon9.velocity.y > 1.0;
-}, 16);
+});
 `,
   },
 
@@ -102,14 +102,14 @@ setInterval(() => {
 
 // Fire the booster whenever we're falling too fast.
 // Try adjusting the threshold — what value keeps you from crashing?
-setInterval(() => {
+falcon9.registerController(() => {
   falcon9.fireBoosterEngine = falcon9.velocity.y > /* ??? */ 1.5;
-}, 16);
+});
 `,
     solution: `\
 // Level 1 — Hello, Moon (solution)
 // Fire booster whenever descending too fast; correct tilt with side thrusters.
-setInterval(() => {
+falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
 
@@ -118,7 +118,7 @@ setInterval(() => {
   falcon9.fireRightThruster = angle < -0.05 || spin < -0.5;
 
   falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
-}, 16);
+});
 `,
   },
 
@@ -148,7 +148,7 @@ setInterval(() => {
 //   falcon9.angle              — current tilt (radians, 0 = upright)
 //   falcon9.rotationalMomentum — how fast it's spinning
 
-setInterval(() => {
+falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
 
@@ -156,12 +156,12 @@ setInterval(() => {
   falcon9.fireLeftThruster  = /* ??? */ false;
   falcon9.fireRightThruster = /* ??? */ false;
   falcon9.fireBoosterEngine = /* ??? */ false;
-}, 16);
+});
 `,
     solution: `\
 // Level 2 — Tilted (solution)
 // PD controller: correct angle and damp spin, then manage descent
-setInterval(() => {
+falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
   const error = angle + spin * 5; // predict where angle is heading
@@ -169,7 +169,7 @@ setInterval(() => {
   falcon9.fireLeftThruster  = error > 0.05;
   falcon9.fireRightThruster = error < -0.05;
   falcon9.fireBoosterEngine = Math.abs(angle) < 0.3 && falcon9.velocity.y > 0.8;
-}, 16);
+});
 `,
   },
 
@@ -198,7 +198,7 @@ setInterval(() => {
 //   derivative = rotationalMomentum  (how quickly the error is changing)
 //   combined  = error + derivative * someGain
 
-setInterval(() => {
+falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
   const vy    = falcon9.velocity.y;
@@ -207,18 +207,18 @@ setInterval(() => {
   falcon9.fireLeftThruster  = false;
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 3 — Steady the Ship (solution)
-setInterval(() => {
+falcon9.registerController(() => {
   const error = falcon9.angle + falcon9.rotationalMomentum * 8;
 
   falcon9.fireLeftThruster  = error > 0.04;
   falcon9.fireRightThruster = error < -0.04;
   // Only thrust when reasonably upright and falling faster than 0.5
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.4 && falcon9.velocity.y > 0.5;
-}, 16);
+});
 `,
   },
 
@@ -248,7 +248,7 @@ setInterval(() => {
 //   falcon9.velocity.x — horizontal speed (positive = drifting right)
 //   falcon9.velocity.y — vertical speed
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vx = falcon9.velocity.x;
   const vy = falcon9.velocity.y;
 
@@ -256,13 +256,13 @@ setInterval(() => {
   falcon9.fireLeftThruster  = false;
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 4 — Lateral Drift (solution)
 // Cancel horizontal velocity by tilting into it; the tilted engine reduces
 // both vx and vy simultaneously.
-setInterval(() => {
+falcon9.registerController(() => {
   const vx = falcon9.velocity.x;
   const vy = falcon9.velocity.y;
 
@@ -278,7 +278,7 @@ setInterval(() => {
   // speed is within budget regardless of remaining horizontal component.
   const vyThreshold = Math.max(0.3, 0.85 - Math.abs(vx));
   falcon9.fireBoosterEngine = Math.abs(error) < 0.4 && vy > vyThreshold;
-}, 16);
+});
 `,
   },
 
@@ -307,7 +307,7 @@ setInterval(() => {
 //   game.canvas.width   — total canvas width
 // The pad centre is at canvas.width / 2.
 
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;
   const dx   = falcon9.position.x - padX; // positive = right of pad
 
@@ -315,14 +315,14 @@ setInterval(() => {
   falcon9.fireLeftThruster  = false;
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 5 — Bullseye (solution)
 // The ship spawns directly above the pad but with a rightward drift.
 // A PD controller maps position error and lateral velocity directly onto a
 // target tilt angle — no inner velocity loop needed.
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;   // pad is always at canvas centre
   const err  = padX - falcon9.position.x;  // +ve = pad is right of ship
   const vx   = falcon9.velocity.x;
@@ -340,7 +340,7 @@ setInterval(() => {
 
   // Brake vertical descent whenever the rocket is nearly upright
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35;
-}, 16);
+});
 `,
   },
 
@@ -369,7 +369,7 @@ setInterval(() => {
 // Tip: only fire thrusters when the error exceeds a threshold (dead-band),
 // and avoid running the booster continuously.
 
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;
   const dx   = falcon9.position.x - padX;
 
@@ -377,7 +377,7 @@ setInterval(() => {
   falcon9.fireLeftThruster  = false;
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 6 — On a Budget (solution)
@@ -387,7 +387,7 @@ const NET_DECEL_6 = 0.04 - 0.010; // enginePower - gravity
 const TARGET_VY_6 = 0.55;
 let   burning_6   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
@@ -401,7 +401,7 @@ setInterval(() => {
   if (!burning_6 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_6) { burning_6 = true; }
   if ( burning_6 && vy <= TARGET_VY_6) { burning_6 = false; }
   falcon9.fireBoosterEngine = burning_6 && Math.abs(falcon9.angle) < 0.45;
-}, 16);
+});
 `,
   },
 
@@ -429,7 +429,7 @@ setInterval(() => {
 //
 // Strategy: use short timed burns; let momentum carry you between pulses.
 
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;
   const dx   = falcon9.position.x - padX;
   const vy   = falcon9.velocity.y;
@@ -438,7 +438,7 @@ setInterval(() => {
   falcon9.fireLeftThruster  = false;
   falcon9.fireRightThruster = false;
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 7 — Minimum Power (solution)
@@ -449,7 +449,7 @@ const NET_DECEL_7 = 0.06 - 0.010; // minThrottle - gravity
 const TARGET_VY_7 = 0.5;
 let   burning_7   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
@@ -463,7 +463,7 @@ setInterval(() => {
   if (!burning_7 && alt <= stoppingDist * 1.15 + 5 && vy > TARGET_VY_7) { burning_7 = true; }
   if ( burning_7 && vy <= TARGET_VY_7) { burning_7 = false; }
   falcon9.fireBoosterEngine = burning_7 && Math.abs(falcon9.angle) < 0.4;
-}, 16);
+});
 `,
   },
 
@@ -492,13 +492,13 @@ setInterval(() => {
 // Hint: compute how long a burn needs to last to achieve the desired delta-v,
 // rather than running the engine continuously.
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
   // TODO: predictive burn scheduling
   falcon9.fireBoosterEngine = false;
-}, 16);
+});
 `,
     solution: `\
 // Level 8 — Precision Burn (solution)
@@ -507,7 +507,7 @@ const NET_DECEL_8 = 0.06 - 0.010; // minThrottle - gravity
 const TARGET_VY_8 = 0.4;
 let   burning_8   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
@@ -521,7 +521,7 @@ setInterval(() => {
   if (!burning_8 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_8) { burning_8 = true; }
   if ( burning_8 && vy <= TARGET_VY_8) { burning_8 = false; }
   falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.25;
-}, 16);
+});
 `,
   },
 
@@ -555,7 +555,7 @@ setInterval(() => {
 //
 // Start the burn when altitude ≤ stopping_distance.
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
@@ -563,7 +563,7 @@ setInterval(() => {
   const stoppingDist = /* ??? */;
 
   falcon9.fireBoosterEngine = /* ??? */;
-}, 16);
+});
 `,
     solution: `\
 // Level 9 — The Long Fall (solution)
@@ -573,7 +573,7 @@ const NET_DECEL_9 = 0.08 - 0.010;
 const TARGET_VY_9 = 0.35;
 let   burning_9   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const vy   = falcon9.velocity.y;
   const alt  = falcon9.altitude;
 
@@ -590,7 +590,7 @@ setInterval(() => {
     burning_9 = false;
   }
   falcon9.fireBoosterEngine = burning_9 && Math.abs(angleError) < 0.3;
-}, 16);
+});
 `,
   },
 
@@ -638,7 +638,7 @@ const NET_DECEL = 0.10 - 0.010;
 const TARGET_VY = 0.3;
 let   burning   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;
   const dx   = falcon9.position.x - padX;
   const vx   = falcon9.velocity.x;
@@ -656,7 +656,7 @@ setInterval(() => {
   if (!burning && alt <= ignitionAlt * 1.08 && vy > TARGET_VY) burning = true;
   if (burning  && vy <= TARGET_VY)                              burning = false;
   falcon9.fireBoosterEngine = burning;
-}, 16);
+});
 `,
     solution: `\
 // Level 10 — Hoverslam (solution)
@@ -665,7 +665,7 @@ const NET_DECEL_10 = 0.10 - 0.010;
 const TARGET_VY_10 = 0.3;
 let   burning_10   = false;
 
-setInterval(() => {
+falcon9.registerController(() => {
   const padX = game.canvas.width / 2;
   const dx   = falcon9.position.x - padX;
   const vx   = falcon9.velocity.x;
@@ -684,7 +684,7 @@ setInterval(() => {
   if (burning_10  && vy <= TARGET_VY_10)                               burning_10 = false;
 
   falcon9.fireBoosterEngine = burning_10;
-}, 16);
+});
 `,
   },
 ];

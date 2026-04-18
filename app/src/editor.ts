@@ -82,6 +82,8 @@ declare const falcon9: {
   readonly fuelRemaining: number;
   /** Distance from the bottom of the rocket to the ground surface. */
   readonly altitude: number;
+  /** Register the flight controller function. Called once per guidance cycle (every rendered frame). */
+  registerController(fn: () => void): void;
 };
 
 declare const game: {

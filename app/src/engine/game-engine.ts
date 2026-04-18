@@ -12,6 +12,7 @@ export class GameEngine {
   private _rafId: number | null = null;
   private _lastTimestamp: number | null = null;
   private _resizeObserver: ResizeObserver;
+  private _frameCallback: (() => void) | undefined;
 
   readonly levels = new LevelManager();
   readonly input: InputManager;
@@ -67,6 +68,11 @@ export class GameEngine {
     this._tick(performance.now());
   }
 
+  /** Register a callback to be called once per frame, before physics is stepped. */
+  onFrame(fn: () => void): void {
+    this._frameCallback = fn;
+  }
+
   stop(): void {
     this.pause();
     this._entities.forEach((e) => e.destroy?.());
@@ -88,6 +94,8 @@ export class GameEngine {
       if (screenX < deadLeft)  this.cameraX = this.cameraTarget.position.x - deadLeft;
       if (screenX > deadRight) this.cameraX = this.cameraTarget.position.x - deadRight;
     }
+
+    this._frameCallback?.();
 
     this._ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     for (const entity of this._entities) {

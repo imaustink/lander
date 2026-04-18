@@ -4,13 +4,23 @@ import { Vector2 } from "./engine/vector2.js";
 const CONTROL_FLAGS = new Set(["fireBoosterEngine", "fireLeftThruster", "fireRightThruster"]);
 const FROZEN_VECTOR_PROPS = new Set(["velocity", "position"]);
 
+/** The user-facing Falcon 9 interface — the three control flags plus read-only telemetry. */
+export type Falcon9UserProxy = Falcon9 & {
+  /** Register the flight controller function. Called once per guidance cycle (every rendered frame). */
+  registerController(fn: () => void): void;
+};
+
 /**
  * Wraps a Falcon9 instance in a Proxy that:
  *  - Allows writes only to the three boolean control flags
  *  - Returns frozen clones of Vector2 properties so nested mutation is blocked
  *  - Calls markCheater() on any other write attempt
+ *  - Exposes registerController() for the player to install their guidance algorithm
  */
-export function createFalcon9Proxy(instance: Falcon9): Falcon9 {
+export function createFalcon9Proxy(
+  instance: Falcon9,
+  registerController: (fn: () => void) => void,
+): Falcon9UserProxy {
   return new Proxy(instance, {
     set(_target, prop: string | symbol, value: unknown): boolean {
       if (typeof prop === "string" && CONTROL_FLAGS.has(prop)) {
@@ -22,6 +32,7 @@ export function createFalcon9Proxy(instance: Falcon9): Falcon9 {
       return true;
     },
     get(target, prop: string | symbol): unknown {
+      if (prop === "registerController") return registerController;
       const value = (target as unknown as Record<string | symbol, unknown>)[prop];
       // Return a frozen clone so user code cannot mutate velocity.y / position.x
       if (typeof prop === "string" && FROZEN_VECTOR_PROPS.has(prop) && value instanceof Vector2) {
@@ -32,5 +43,5 @@ export function createFalcon9Proxy(instance: Falcon9): Falcon9 {
       }
       return value;
     },
-  });
+  }) as Falcon9UserProxy;
 }

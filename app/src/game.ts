@@ -6,7 +6,7 @@ import { LandingPad } from "./entities/landing-pad.js";
 import { FuelGauge } from "./entities/fuel-gauge.js";
 import type { LevelConfig } from "./engine/level.js";
 import { LEVELS } from "./levels.js";
-import { createFalcon9Proxy } from "./falcon9-proxy.js";
+import { createFalcon9Proxy, type Falcon9UserProxy } from "./falcon9-proxy.js";
 
 const game = new GameEngine("game");
 
@@ -27,7 +27,8 @@ game.onLevelLoad = (_level: LevelConfig, _index: number) => {
   falcon9 = new Falcon9(game);
   new FuelGauge(game, falcon9);
   // Expose a read-guarded proxy — user code can only write the three control flags
-  (window as unknown as GameWindow).falcon9 = createFalcon9Proxy(falcon9);
+  // and register their guidance algorithm via falcon9.registerController()
+  (window as unknown as GameWindow).falcon9 = createFalcon9Proxy(falcon9, (fn) => game.onFrame(fn));
   // Notify parent window so the level selector stays in sync
   window.parent.postMessage({ type: "levelLoaded", index: _index }, "*");
   game.start();
@@ -132,7 +133,7 @@ function showOverlay(
 
 interface GameWindow extends Window {
   game: GameEngine;
-  falcon9: Falcon9;
+  falcon9: Falcon9UserProxy;
   __startLevel?: number;
 }
 

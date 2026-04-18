@@ -91,6 +91,7 @@ function compileController(
     get rotationalMomentum() { return _state.rotMomentum; },
     get fuelRemaining() { return _state.fuelRemaining; },
     get altitude() { return (_state as SimState & { altitude: number }).altitude; },
+    registerController: (fn: () => void) => { intervals.push(fn); },
   };
 
   const level = LEVELS[levelIndex].config;
