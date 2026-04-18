@@ -110,13 +110,22 @@ function showOverlay(
     border:none;border-radius:6px;font-size:13px;font-weight:700;
     letter-spacing:0.5px;cursor:pointer;
   `;
-  btn.addEventListener("click", () => {
+  const handleAction = (): void => {
     overlay.remove();
+    document.removeEventListener("keydown", onKeyDown);
     onAction();
-  });
+  };
+
+  const onKeyDown = (e: KeyboardEvent): void => {
+    if (e.key === "Enter") handleAction();
+  };
+
+  btn.addEventListener("click", handleAction);
+  document.addEventListener("keydown", onKeyDown);
 
   overlay.append(h2, p, btn);
   document.body.appendChild(overlay);
+  btn.focus();
 }
 
 // ── Boot ────────────────────────────────────────────────────────────────────

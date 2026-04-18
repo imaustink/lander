@@ -122,9 +122,15 @@ require(["vs/editor/editor.main"], function () {
   // Expose for E2E tests (Monaco textarea is virtualized, getValue() is reliable)
   (window as unknown as Record<string, unknown>).__editor = editor;
 
+  // Track whether the editor currently shows the solution so we don't
+  // persist it to localStorage (which would hide future solution updates).
+  let solutionShown = false;
+  editor.onDidChangeModelContent(() => { solutionShown = false; });
+
   // ── Level selector ──────────────────────────────────────────────────────
   levelSelect.addEventListener("change", () => {
-    saveCode(currentLevel, editor.getValue());
+    if (!solutionShown) saveCode(currentLevel, editor.getValue());
+    solutionShown = false;
     currentLevel = Number(levelSelect.value);
     editor.setValue(loadCode(currentLevel));
   });
@@ -143,20 +149,28 @@ require(["vs/editor/editor.main"], function () {
     confirmDialog.showModal();
   });
 
+  confirmDialog.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      dialogConfirm.click();
+    }
+  });
+
   dialogCancel.addEventListener("click", () => {
     confirmDialog.close();
   });
 
   dialogConfirm.addEventListener("click", () => {
     confirmDialog.close();
-    saveCode(currentLevel, editor.getValue());
+    saveCode(currentLevel, editor.getValue()); // preserve user's work before overwriting
     editor.setValue(LEVELS[currentLevel].solution);
+    solutionShown = true; // set after setValue so the change event doesn't clobber it
   });
 
   // ── Run button ──────────────────────────────────────────────────────────
   run.addEventListener("click", () => {
     const code = editor.getValue();
-    saveCode(currentLevel, code);
+    if (!solutionShown) saveCode(currentLevel, code);
 
     Array.from(gameContainer.children).forEach((child) => {
       if ((child as HTMLElement).tagName === "IFRAME") child.remove();

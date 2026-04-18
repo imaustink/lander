@@ -233,6 +233,7 @@ setInterval(() => {
       canReignite: true,
       maxLandingVelocity: 1.0,
       initialAngle: 0,
+      initialSpin: 0,
       initialVelocity: { x: 1.0, y: 0.3 },
       initialPosition: { x: 400, y: 80 },
     },
@@ -259,20 +260,24 @@ setInterval(() => {
 `,
     solution: `\
 // Level 4 — Lateral Drift (solution)
-// Cancel horizontal velocity by tilting into it, then upright and brake
+// Cancel horizontal velocity by tilting into it; the tilted engine reduces
+// both vx and vy simultaneously.
 setInterval(() => {
-  const vx  = falcon9.velocity.x;
-  const vy  = falcon9.velocity.y;
+  const vx = falcon9.velocity.x;
+  const vy = falcon9.velocity.y;
 
-  // Tilt proportional to horizontal velocity to cancel drift
+  // Drive angle proportional to lateral drift: negative angle thrusts left.
   const targetAngle = Math.max(-0.5, Math.min(0.5, -vx * 0.5));
   const error = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
 
   falcon9.fireLeftThruster  = error > 0.05;
   falcon9.fireRightThruster = error < -0.05;
-  // Pulse-brake: only fire when descent speed nears the landing limit.
-  // Too low a threshold keeps the engine on all the way down (painfully slow).
-  falcon9.fireBoosterEngine = Math.abs(error) < 0.3 && vy > 0.7;
+
+  // Budget the landing velocity: |vx| + |vy| must be < 1.0.
+  // Brake earlier when lateral drift is still significant so the combined
+  // speed is within budget regardless of remaining horizontal component.
+  const vyThreshold = Math.max(0.3, 0.85 - Math.abs(vx));
+  falcon9.fireBoosterEngine = Math.abs(error) < 0.4 && vy > vyThreshold;
 }, 16);
 `,
   },
