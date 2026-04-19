@@ -133,7 +133,9 @@ falcon9.registerController(() => {
       canReignite: true,
       maxLandingVelocity: 2.0,
       initialAngle: 0.4,
+      initialSpin: 0,
       initialVelocity: { x: 0.2, y: 0.2 },
+      initialPosition: { yRatio: 0.13 },
     },
     starter: `\
 // Level 2 — Tilted
