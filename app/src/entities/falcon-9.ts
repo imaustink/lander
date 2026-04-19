@@ -53,6 +53,7 @@ export class Falcon9 implements Entity {
   private _cheater = false;
   private _legDeployRatio = 0; // 0 = stowed, 1 = fully deployed
   private _gimbalAngle = 0;    // TVC nozzle deflection in radians
+  private _gridFinAngle = 0;   // grid fin deflection in radians
   private _game!: GameEngine;
 
   constructor(game: GameEngine, options: Falcon9Options = {}) {
@@ -188,6 +189,13 @@ export class Falcon9 implements Entity {
                        : 0;
     this._gimbalAngle += (targetGimbal - this._gimbalAngle) * Math.min(1, dt / 80);
 
+    // Smooth grid fin deflection: ±0.45 rad based on active thrusters
+    const FIN_MAX = 0.45;
+    const targetFin = (leftActive && !rightActive) ? FIN_MAX
+                    : (rightActive && !leftActive) ? -FIN_MAX
+                    : 0;
+    this._gridFinAngle += (targetFin - this._gridFinAngle) * Math.min(1, dt / 60);
+
     // Animate landing legs: deploy below 150 units altitude (~0.9s unfold)
     const DEPLOY_ALTITUDE = 150;
     if (this.altitude < DEPLOY_ALTITUDE) {
@@ -317,15 +325,28 @@ export class Falcon9 implements Entity {
     const finW = w * 0.6;
     const finH = 3.5;
     const finY = s1Top + 3;
+    const finMidY = finY + finH / 2;
+    const finAngle = this._gridFinAngle;
+
+    // Left fin — pivots at body edge
+    ctx.save();
+    ctx.translate(-hw, finMidY);
+    ctx.rotate(finAngle);
     ctx.fillStyle = "#888";
-    // Left fin
-    ctx.fillRect(-hw - finW + 1, finY, finW, finH);
-    // Right fin
-    ctx.fillRect(hw - 1, finY, finW, finH);
-    // Thin strut connecting fin to body
+    ctx.fillRect(-finW + 1, -finH / 2, finW, finH);
     ctx.fillStyle = "#666";
-    ctx.fillRect(-hw - 1, finY, 2, finH);
-    ctx.fillRect(hw - 1, finY, 2, finH);
+    ctx.fillRect(-1, -finH / 2, 2, finH);
+    ctx.restore();
+
+    // Right fin — pivots at body edge
+    ctx.save();
+    ctx.translate(hw, finMidY);
+    ctx.rotate(finAngle);
+    ctx.fillStyle = "#888";
+    ctx.fillRect(-1, -finH / 2, finW, finH);
+    ctx.fillStyle = "#666";
+    ctx.fillRect(-1, -finH / 2, 2, finH);
+    ctx.restore();
 
     // ── Octaweb base (engine section) ────────────────────────────────────────
     ctx.fillStyle = "#444";
