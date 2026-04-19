@@ -67,10 +67,10 @@ const LANDER_TYPES = `
 declare const falcon9: {
   /** Main booster engine — thrust along the rocket axis. Set true to fire. */
   fireBoosterEngine: boolean;
-  /** Left thruster — rotates the rocket counter-clockwise. Set true to fire. */
-  fireLeftThruster: boolean;
-  /** Right thruster — rotates the rocket clockwise. Set true to fire. */
-  fireRightThruster: boolean;
+  /** Rotates the rocket counter-clockwise. 0–1 (proportional) or boolean. */
+  rotateLeft: number | boolean;
+  /** Rotates the rocket clockwise. 0–1 (proportional) or boolean. */
+  rotateRight: number | boolean;
   /** Current velocity (read-only). Positive y = falling downward. */
   readonly velocity: { readonly x: number; readonly y: number };
   /** Current position in world units (read-only). */

@@ -46,12 +46,21 @@ export interface AngleState {
  */
 export const GRID_FIN_REF_SPEED = 1.0;
 
+/**
+ * Clamp a thruster input to [0, 1].
+ * Accepts booleans (true→1, false→0) or numbers for proportional control.
+ */
+export function clampThruster(v: number | boolean): number {
+  const n = Number(v);
+  return n !== n ? 0 : Math.max(0, Math.min(1, n)); // NaN → 0
+}
+
 export function stepAngle(
   angle: number,
   rotMomentum: number,
   t: number,
-  leftActive: boolean,
-  rightActive: boolean,
+  leftActive: number,
+  rightActive: number,
   gravity: number,
   drag: number,
   boosterActive: boolean,
@@ -66,11 +75,9 @@ export function stepAngle(
   const steerFactor = boosterActive ? 1.0 : gridFinFactor;
 
   const torque = 0.01 * steerFactor * t;
-  if (rightActive) {
-    rotMomentum += torque;
-  } else if (leftActive) {
-    rotMomentum -= torque;
-  }
+  // Net steering: rightActive pushes clockwise (+), leftActive counter-clockwise (−).
+  // Values are 0–1 allowing proportional control.
+  rotMomentum += torque * (rightActive - leftActive);
 
   rotMomentum += 0.75 * Math.sin(angle) * gravity * t;
 

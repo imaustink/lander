@@ -14,8 +14,8 @@ function makeMock() {
   const markCheater = vi.fn();
   const mock = {
     fireBoosterEngine: false,
-    fireLeftThruster: false,
-    fireRightThruster: false,
+    rotateLeft: 0 as number | boolean,
+    rotateRight: 0 as number | boolean,
     velocity: new Vector2(0.5, 1.2),
     position: new Vector2(400, 100),
     angle: 0.3,
@@ -36,26 +36,36 @@ describe("Falcon9Proxy — control flags", () => {
     expect(mock.fireBoosterEngine).toBe(true);
   });
 
-  it("allows writes to fireLeftThruster", () => {
+  it("allows writes to rotateLeft", () => {
     const { mock } = makeMock();
     const proxy = createFalcon9Proxy(mock, () => {});
-    proxy.fireLeftThruster = true;
-    expect(mock.fireLeftThruster).toBe(true);
+    proxy.rotateLeft = true;
+    expect(mock.rotateLeft).toBe(true);
   });
 
-  it("allows writes to fireRightThruster", () => {
+  it("allows writes to rotateRight", () => {
     const { mock } = makeMock();
     const proxy = createFalcon9Proxy(mock, () => {});
-    proxy.fireRightThruster = true;
-    expect(mock.fireRightThruster).toBe(true);
+    proxy.rotateRight = true;
+    expect(mock.rotateRight).toBe(true);
   });
 
   it("does NOT call markCheater when writing a control flag", () => {
     const { mock, markCheater } = makeMock();
     const proxy = createFalcon9Proxy(mock, () => {});
     proxy.fireBoosterEngine = true;
-    proxy.fireLeftThruster = true;
-    proxy.fireRightThruster = false;
+    proxy.rotateLeft = true;
+    proxy.rotateRight = false;
+    expect(markCheater).not.toHaveBeenCalled();
+  });
+
+  it("allows numeric values for thruster control flags", () => {
+    const { mock, markCheater } = makeMock();
+    const proxy = createFalcon9Proxy(mock, () => {});
+    (proxy as unknown as Record<string, unknown>).rotateLeft = 0.5;
+    (proxy as unknown as Record<string, unknown>).rotateRight = 0.75;
+    expect(mock.rotateLeft).toBe(0.5);
+    expect(mock.rotateRight).toBe(0.75);
     expect(markCheater).not.toHaveBeenCalled();
   });
 });

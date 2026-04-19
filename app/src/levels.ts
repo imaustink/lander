@@ -42,6 +42,9 @@ export const LEVELS: LevelData[] = [
 //   ← Arrow         — left thruster (rotates counter-clockwise)
 //   → Arrow         — right thruster (rotates clockwise)
 //
+// Thrusters accept values from 0 to 1 for proportional control,
+// or true/false for full on/off.
+//
 // When you're ready to automate the landing, move on to Level 1.
 // Hit "Show Solution" to see a simple automatic controller!
 
@@ -52,8 +55,8 @@ document.addEventListener("keyup",   (e) => keys.delete(e.code));
 
 falcon9.registerController(() => {
   falcon9.fireBoosterEngine = keys.has("ArrowUp") || keys.has("Space");
-  falcon9.fireLeftThruster  = keys.has("ArrowLeft");
-  falcon9.fireRightThruster = keys.has("ArrowRight");
+  falcon9.rotateLeft  = keys.has("ArrowLeft");
+  falcon9.rotateRight = keys.has("ArrowRight");
 });
 `,
     solution: `\
@@ -63,8 +66,8 @@ falcon9.registerController(() => {
 falcon9.registerController(() => {
   // Keep the ship upright using a PD controller
   const error = falcon9.angle + falcon9.rotationalMomentum * 5;
-  falcon9.fireLeftThruster  = error > 0.05;
-  falcon9.fireRightThruster = error < -0.05;
+  falcon9.rotateLeft  = error > 0.05;
+  falcon9.rotateRight = error < -0.05;
 
   // Fire the booster to slow descent when roughly upright
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.3 && falcon9.velocity.y > 1.0;
@@ -91,10 +94,10 @@ falcon9.registerController(() => {
 // Your goal: slow down before you hit the surface.
 // Try firing the booster engine to control your descent.
 //
-// Available controls:
+// Available controls (true/false or 0–1 for proportional):
 //   falcon9.fireBoosterEngine = true/false  (main engine)
-//   falcon9.fireLeftThruster  = true/false  (rotate right)
-//   falcon9.fireRightThruster = true/false  (rotate left)
+//   falcon9.rotateLeft  = 0 to 1      (rotate counter-clockwise)
+//   falcon9.rotateRight = 0 to 1      (rotate clockwise)
 //
 // Useful readings:
 //   falcon9.velocity.y   — downward speed (positive = falling)
@@ -114,8 +117,8 @@ falcon9.registerController(() => {
   const spin  = falcon9.rotationalMomentum;
 
   // Dampen any rotation to keep the ship upright
-  falcon9.fireLeftThruster  = angle > 0.05 || spin > 0.5;
-  falcon9.fireRightThruster = angle < -0.05 || spin < -0.5;
+  falcon9.rotateLeft  = angle > 0.05 || spin > 0.5;
+  falcon9.rotateRight = angle < -0.05 || spin < -0.5;
 
   falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
 });
@@ -142,9 +145,9 @@ falcon9.registerController(() => {
 // The ship spawns with a noticeable tilt.
 // Firing the booster while tilted pushes you sideways — fix the angle first!
 //
-// Side thrusters adjust rotational momentum:
-//   fireLeftThruster  → rotates counter-clockwise (reduces positive angle)
-//   fireRightThruster → rotates clockwise (increases angle)
+// Side thrusters accept 0–1 for proportional control (or true/false):
+//   rotateLeft  → rotates counter-clockwise (reduces positive angle)
+//   rotateRight → rotates clockwise (increases angle)
 //
 // Useful readings:
 //   falcon9.angle              — current tilt (radians, 0 = upright)
@@ -155,8 +158,8 @@ falcon9.registerController(() => {
   const spin  = falcon9.rotationalMomentum;
 
   // TODO: correct the angle before landing
-  falcon9.fireLeftThruster  = /* ??? */ false;
-  falcon9.fireRightThruster = /* ??? */ false;
+  falcon9.rotateLeft  = /* ??? */ false;
+  falcon9.rotateRight = /* ??? */ false;
   falcon9.fireBoosterEngine = /* ??? */ false;
 });
 `,
@@ -168,8 +171,8 @@ falcon9.registerController(() => {
   const spin  = falcon9.rotationalMomentum;
   const error = angle + spin * 5; // predict where angle is heading
 
-  falcon9.fireLeftThruster  = error > 0.05;
-  falcon9.fireRightThruster = error < -0.05;
+  falcon9.rotateLeft  = error > 0.05;
+  falcon9.rotateRight = error < -0.05;
   falcon9.fireBoosterEngine = Math.abs(angle) < 0.3 && falcon9.velocity.y > 0.8;
 });
 `,
@@ -206,8 +209,8 @@ falcon9.registerController(() => {
   const vy    = falcon9.velocity.y;
 
   // TODO: stabilise angle, then slow descent
-  falcon9.fireLeftThruster  = false;
-  falcon9.fireRightThruster = false;
+  falcon9.rotateLeft  = false;
+  falcon9.rotateRight = false;
   falcon9.fireBoosterEngine = false;
 });
 `,
@@ -216,8 +219,8 @@ falcon9.registerController(() => {
 falcon9.registerController(() => {
   const error = falcon9.angle + falcon9.rotationalMomentum * 8;
 
-  falcon9.fireLeftThruster  = error > 0.04;
-  falcon9.fireRightThruster = error < -0.04;
+  falcon9.rotateLeft  = error > 0.04;
+  falcon9.rotateRight = error < -0.04;
   // Only thrust when reasonably upright and falling faster than 0.5
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.4 && falcon9.velocity.y > 0.5;
 });
@@ -255,8 +258,8 @@ falcon9.registerController(() => {
   const vy = falcon9.velocity.y;
 
   // TODO: cancel horizontal drift
-  falcon9.fireLeftThruster  = false;
-  falcon9.fireRightThruster = false;
+  falcon9.rotateLeft  = false;
+  falcon9.rotateRight = false;
   falcon9.fireBoosterEngine = false;
 });
 `,
@@ -272,8 +275,8 @@ falcon9.registerController(() => {
   const targetAngle = Math.max(-0.5, Math.min(0.5, -vx * 0.5));
   const error = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
 
-  falcon9.fireLeftThruster  = error > 0.05;
-  falcon9.fireRightThruster = error < -0.05;
+  falcon9.rotateLeft  = error > 0.05;
+  falcon9.rotateRight = error < -0.05;
 
   // Budget the landing velocity: |vx| + |vy| must be < 1.0.
   // Brake earlier when lateral drift is still significant so the combined
@@ -314,8 +317,8 @@ falcon9.registerController(() => {
   const dx   = falcon9.position.x - padX; // positive = right of pad
 
   // TODO: steer toward the pad while managing velocity
-  falcon9.fireLeftThruster  = false;
-  falcon9.fireRightThruster = false;
+  falcon9.rotateLeft  = false;
+  falcon9.rotateRight = false;
   falcon9.fireBoosterEngine = false;
 });
 `,
@@ -337,8 +340,8 @@ falcon9.registerController(() => {
   ));
 
   const angleError = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
-  falcon9.fireLeftThruster  = angleError > 0.05;
-  falcon9.fireRightThruster = angleError < -0.05;
+  falcon9.rotateLeft  = angleError > 0.05;
+  falcon9.rotateRight = angleError < -0.05;
 
   // Brake vertical descent whenever the rocket is nearly upright
   falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35;
@@ -376,8 +379,8 @@ falcon9.registerController(() => {
   const dx   = falcon9.position.x - padX;
 
   // TODO: efficient controller with fuel awareness
-  falcon9.fireLeftThruster  = false;
-  falcon9.fireRightThruster = false;
+  falcon9.rotateLeft  = false;
+  falcon9.rotateRight = false;
   falcon9.fireBoosterEngine = false;
 });
 `,
@@ -395,8 +398,8 @@ falcon9.registerController(() => {
 
   // Keep upright — no lateral drift to manage.
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 6;
-  falcon9.fireLeftThruster  = angleError > 0.12;
-  falcon9.fireRightThruster = angleError < -0.12;
+  falcon9.rotateLeft  = angleError > 0.12;
+  falcon9.rotateRight = angleError < -0.12;
 
   // Latch burn once stopping distance reaches remaining altitude.
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_6 * TARGET_VY_6) / (2 * NET_DECEL_6);
@@ -437,8 +440,8 @@ falcon9.registerController(() => {
   const vy   = falcon9.velocity.y;
 
   // TODO: pulse-based control to avoid over-correction
-  falcon9.fireLeftThruster  = false;
-  falcon9.fireRightThruster = false;
+  falcon9.rotateLeft  = false;
+  falcon9.rotateRight = false;
   falcon9.fireBoosterEngine = false;
 });
 `,
@@ -457,8 +460,8 @@ falcon9.registerController(() => {
 
   // Null any residual tilt; wide dead-band avoids wasting powerful pulses.
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
-  falcon9.fireLeftThruster  = angleError > 0.15;
-  falcon9.fireRightThruster = angleError < -0.15;
+  falcon9.rotateLeft  = angleError > 0.15;
+  falcon9.rotateRight = angleError < -0.15;
 
   // Latch: ignite once when stopping distance meets remaining altitude.
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_7 * TARGET_VY_7) / (2 * NET_DECEL_7);
@@ -510,8 +513,8 @@ falcon9.registerController(() => {
   const alt = falcon9.altitude;
 
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
-  falcon9.fireLeftThruster  = angleError > 0.07;
-  falcon9.fireRightThruster = angleError < -0.07;
+  falcon9.rotateLeft  = angleError > 0.07;
+  falcon9.rotateRight = angleError < -0.07;
 
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * NET_DECEL);
   if (!burning && alt <= stoppingDist * 1.15 + 3 && vy > TARGET_VY) { burning = true; }
@@ -531,8 +534,8 @@ falcon9.registerController(() => {
   const alt = falcon9.altitude;
 
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
-  falcon9.fireLeftThruster  = angleError > 0.07;
-  falcon9.fireRightThruster = angleError < -0.07;
+  falcon9.rotateLeft  = angleError > 0.07;
+  falcon9.rotateRight = angleError < -0.07;
 
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_8 * TARGET_VY_8) / (2 * NET_DECEL_8);
   if (!burning_8 && alt <= stoppingDist * 1.15 + 3 && vy > TARGET_VY_8) { burning_8 = true; }
@@ -582,8 +585,8 @@ falcon9.registerController(() => {
 
   // Kill spin with thrusters first
   const angleError = falcon9.angle + falcon9.rotationalMomentum * /* gain */ 0;
-  falcon9.fireLeftThruster  = /* ??? */ false;
-  falcon9.fireRightThruster = /* ??? */ false;
+  falcon9.rotateLeft  = /* ??? */ false;
+  falcon9.rotateRight = /* ??? */ false;
 
   // Then latch the burn
   const stoppingDist = /* ??? */;
@@ -602,8 +605,8 @@ falcon9.registerController(() => {
   const alt  = falcon9.altitude;
 
   const angleError = falcon9.angle + falcon9.rotationalMomentum * 8;
-  falcon9.fireLeftThruster  = angleError > 0.06;
-  falcon9.fireRightThruster = angleError < -0.06;
+  falcon9.rotateLeft  = angleError > 0.06;
+  falcon9.rotateRight = angleError < -0.06;
 
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_9 * TARGET_VY_9) / (2 * NET_DECEL_9);
   if (!burning_9 && alt <= stoppingDist * 1.1 && vy > TARGET_VY_9) {
@@ -696,9 +699,11 @@ falcon9.registerController(() => {
   const burnAngle = burnDone ? 0 : Math.max(-0.50, Math.min(0.50,
     -Math.atan2(vx * /* ratio */ 0, Math.max(vy - TARGET_VY, /* floor */ 0))));
   const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * /* gain */ 0;
-  // Stop commanding thrusters after burnDone — they're ineffective at low speed.
-  falcon9.fireLeftThruster  = !burnDone && angleError >  /* deadband */ 0;
-  falcon9.fireRightThruster = !burnDone && angleError < -/* deadband */ 0;
+  // Proportional thruster control (0–1) gives smoother TVC steering than
+  // boolean on/off. Scale thrust with angle error, disable after cutoff.
+  const thrust = burnDone ? 0 : Math.min(1, Math.abs(angleError) * /* Kp */ 0);
+  falcon9.rotateLeft  = angleError > 0 ? thrust : 0;
+  falcon9.rotateRight = angleError < 0 ? thrust : 0;
 
   // Ignite once at the kinematic stopping altitude.
   // Average decel between tilted start and upright end of burn for accuracy.
@@ -718,6 +723,9 @@ falcon9.registerController(() => {
 // burn handles straightening. The 2.5 denominator floor in the burn-angle
 // formula keeps the tilt modest as vy shrinks, so the rocket is already
 // close to vertical when vy reaches TARGET.
+//
+// Proportional thruster control (0–1) gives smoother TVC steering than
+// bang-bang, reducing angular oscillation during the critical burn phase.
 const ENGINE_10    = 0.10;
 const GRAVITY_10   = 0.010;
 const TARGET_VY_10 = -0.20;   // burn slightly past stop; coast under gravity
@@ -737,10 +745,12 @@ falcon9.registerController(() => {
   const burnAngle = burnDone_10 ? 0 : Math.max(-0.50, Math.min(0.50,
     -Math.atan2(vx * 0.9, Math.max(vy - TARGET_VY_10, 2.5))));
   const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * 1.2;
-  // Stop commanding thrusters once the burn is done — at low coast speed
-  // grid fins have negligible authority and the rocket is already upright.
-  falcon9.fireLeftThruster  = !burnDone_10 && angleError >  0.003;
-  falcon9.fireRightThruster = !burnDone_10 && angleError < -0.003;
+  // Proportional thruster output: scales linearly with angle error for
+  // smooth TVC steering during the burn. Disabled after cutoff — grid fins
+  // have negligible authority at low coast speed.
+  const thrust = burnDone_10 ? 0 : Math.min(1, Math.abs(angleError) * 50);
+  falcon9.rotateLeft  = angleError > 0 ? thrust : 0;
+  falcon9.rotateRight = angleError < 0 ? thrust : 0;
 
   // Ignite at the kinematic stopping altitude. Vertical decel during the
   // burn is averaged between start (tilted) and end (upright) to reduce

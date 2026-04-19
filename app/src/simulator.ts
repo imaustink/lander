@@ -4,7 +4,7 @@
  *
  * The simulator mirrors the real engine's dt-normalised physics exactly.
  * Tests supply a controller function that runs once per simulated frame and
- * sets fireBoosterEngine / fireLeftThruster / fireRightThruster on the state.
+ * sets fireBoosterEngine / rotateLeft / rotateRight on the state.
  */
 
 import type { LevelConfig } from "./engine/level.js";
@@ -16,6 +16,7 @@ import {
   stepAngle,
   stepVelocity,
   stepPosition,
+  clampThruster,
 } from "./engine/physics.js";
 
 // ── Simulator state ───────────────────────────────────────────────────────────
@@ -38,10 +39,10 @@ export interface SimState {
   won: boolean;
   /** Total frames elapsed */
   frame: number;
-  // Thruster state written by the controller each frame
+  // Thruster state written by the controller each frame (0–1 for proportional control)
   fireBoosterEngine: boolean;
-  fireLeftThruster: boolean;
-  fireRightThruster: boolean;
+  rotateLeft: number | boolean;
+  rotateRight: number | boolean;
   // Internal
   _boosterEverFired: boolean;
   _boosterSealed: boolean;
@@ -128,8 +129,8 @@ export function simulate(
     won: false,
     frame: 0,
     fireBoosterEngine: false,
-    fireLeftThruster:  false,
-    fireRightThruster: false,
+    rotateLeft:  0,
+    rotateRight: 0,
     _boosterEverFired: false,
     _boosterSealed:    false,
   };
@@ -163,8 +164,8 @@ export function simulate(
       state._boosterSealed,
     );
     const booster = state.fireBoosterEngine && hasFuel && !state._boosterSealed;
-    const left    = state.fireLeftThruster;
-    const right   = state.fireRightThruster;
+    const left    = clampThruster(state.rotateLeft);
+    const right   = clampThruster(state.rotateRight);
     if (booster) state._boosterEverFired = true;
 
     // Fuel consumption — thrusters (grid fins / thrust vectoring) are free;

@@ -89,8 +89,8 @@ test.describe("Game outcomes", () => {
 setInterval(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
-  falcon9.fireLeftThruster  = angle > 0.05 || spin > 0.5;
-  falcon9.fireRightThruster = angle < -0.05 || spin < -0.5;
+  falcon9.rotateLeft  = angle > 0.05 || spin > 0.5;
+  falcon9.rotateRight = angle < -0.05 || spin < -0.5;
   falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
 }, 16);`;
 

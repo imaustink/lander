@@ -12,7 +12,7 @@ import { resolve, extname, dirname } from "path";
 import { fileURLToPath } from "url";
 import { exec } from "child_process";
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..", "docs");
 const PORT = Number(process.env.PORT) || 3000;
 
 const MIME = {

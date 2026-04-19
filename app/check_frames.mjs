@@ -8,8 +8,8 @@ const velocity = { get x(){return _state.velX}, get y(){return _state.velY} };
 const position = { get x(){return _state.posX}, get y(){return _state.posY} };
 const falcon9 = {
   get fireBoosterEngine(){return _state.fireBoosterEngine}, set fireBoosterEngine(v){_state.fireBoosterEngine=v},
-  get fireLeftThruster(){return _state.fireLeftThruster}, set fireLeftThruster(v){_state.fireLeftThruster=v},
-  get fireRightThruster(){return _state.fireRightThruster}, set fireRightThruster(v){_state.fireRightThruster=v},
+  get rotateLeft(){return _state.rotateLeft}, set rotateLeft(v){_state.rotateLeft=v},
+  get rotateRight(){return _state.rotateRight}, set rotateRight(v){_state.rotateRight=v},
   get velocity(){return velocity}, get position(){return position},
   get angle(){return _state.angle}, get rotationalMomentum(){return _state.rotMomentum},
 };

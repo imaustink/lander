@@ -22,14 +22,14 @@ __Example:__
 ```javascript
 setInterval(() => {
   if (falcon9.angle > 0.1 && falcon9.rotationalMomentum > -0.15) {
-    falcon9.fireLeftThruster = true;
-    falcon9.fireRightThruster = false;
+    falcon9.rotateLeft = true;
+    falcon9.rotateRight = false;
   } else if (falcon9.angle < -0.1 && falcon9.rotationalMomentum < 0.15) {
-    falcon9.fireLeftThruster = false;
-    falcon9.fireRightThruster = true;
+    falcon9.rotateLeft = false;
+    falcon9.rotateRight = true;
   } else {
-    falcon9.fireLeftThruster = false;
-    falcon9.fireRightThruster = false;
+    falcon9.rotateLeft = false;
+    falcon9.rotateRight = false;
   }
 
   if ((falcon9.velocity.y > 2) || (falcon9.velocity.y > 0.5 && falcon9.altitude < 125)) {

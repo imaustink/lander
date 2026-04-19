@@ -9,6 +9,7 @@ import {
   stepAngle,
   stepVelocity,
   stepPosition,
+  clampThruster,
   GRID_FIN_REF_SPEED,
 } from "../engine/physics.js";
 
@@ -43,8 +44,8 @@ export class Falcon9 implements Entity {
 
   // Control surface — set by user code or InputManager callbacks
   fireBoosterEngine = false;
-  fireLeftThruster = false;
-  fireRightThruster = false;
+  rotateLeft: number | boolean = 0;
+  rotateRight: number | boolean = 0;
 
   // State
   landed = false;
@@ -139,8 +140,8 @@ export class Falcon9 implements Entity {
     this._cheater = true;
     // Kill thrust, fling ship downward at clearly lethal speed
     this.fireBoosterEngine = false;
-    this.fireLeftThruster = false;
-    this.fireRightThruster = false;
+    this.rotateLeft = 0;
+    this.rotateRight = 0;
     this.fuelRemaining = 0;
     this.velocity.x = (Math.random() - 0.5) * 8;
     this.velocity.y = 20;
@@ -165,8 +166,8 @@ export class Falcon9 implements Entity {
     );
 
     const boosterActive = this.fireBoosterEngine && hasFuel && !this._boosterSealed;
-    const leftActive = this.fireLeftThruster;
-    const rightActive = this.fireRightThruster;
+    const leftActive = clampThruster(this.rotateLeft);
+    const rightActive = clampThruster(this.rotateRight);
 
     if (boosterActive) this._boosterEverFired = true;
 
@@ -183,21 +184,18 @@ export class Falcon9 implements Entity {
     this._updateVelocity(t, boosterActive, level.gravity, level.minThrottle ?? this.enginePower);
     this._updatePosition(t, game);
 
-    // Smooth TVC gimbal angle: ±0.2 rad based on active thrusters
+    // Smooth TVC gimbal angle: ±0.2 rad scaled by net thruster input
     const GIMBAL_MAX = 0.2;
-    const targetGimbal = (leftActive && !rightActive) ? GIMBAL_MAX
-                       : (rightActive && !leftActive) ? -GIMBAL_MAX
-                       : 0;
+    const netSteer = leftActive - rightActive; // +1 = full left, -1 = full right
+    const targetGimbal = GIMBAL_MAX * netSteer;
     this._gimbalAngle += (targetGimbal - this._gimbalAngle) * Math.min(1, dt / 80);
 
-    // Smooth grid fin deflection: ±0.45 rad based on active thrusters,
+    // Smooth grid fin deflection: ±0.45 rad scaled by net thruster input,
     // scaled by airspeed so fins visually flatten out at low speed.
     const FIN_MAX = 0.45;
     const airspeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
     const finAuthority = boosterActive ? 1.0 : Math.min(airspeed / GRID_FIN_REF_SPEED, 1.0);
-    const targetFin = ((leftActive && !rightActive) ? FIN_MAX
-                    : (rightActive && !leftActive) ? -FIN_MAX
-                    : 0) * finAuthority;
+    const targetFin = FIN_MAX * netSteer * finAuthority;
     this._gridFinAngle += (targetFin - this._gridFinAngle) * Math.min(1, dt / 60);
 
     // Animate landing legs: deploy below 150 units altitude (~0.9s unfold)
@@ -209,7 +207,7 @@ export class Falcon9 implements Entity {
     }
   }
 
-  private _updateAngle(t: number, leftActive: boolean, rightActive: boolean, gravity: number, boosterActive: boolean): void {
+  private _updateAngle(t: number, leftActive: number, rightActive: number, gravity: number, boosterActive: boolean): void {
     ({ angle: this.angle, rotMomentum: this.rotationalMomentum } = stepAngle(
       this.angle, this.rotationalMomentum, t, leftActive, rightActive, gravity, this.dragCoefficient,
       boosterActive, this.velocity.x, this.velocity.y,

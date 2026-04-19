@@ -23,10 +23,7 @@
   "type": "module",
   "files": [
     "bin/",
-    "index.html",
-    "frames/",
-    "assets/",
-    "vs/"
+    "docs/"
   ],
   "publishConfig": {
     "access": "public"

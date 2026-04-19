@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A browser-based educational game where players write JavaScript to control a Falcon 9-inspired rocket and land it safely on the moon. The player's code runs in a sandboxed `<iframe>` and manipulates three boolean flags on a `falcon9` object (`fireBoosterEngine`, `fireLeftThruster`, `fireRightThruster`) each frame to control the descent.
+A browser-based educational game where players write JavaScript to control a Falcon 9-inspired rocket and land it safely on the moon. The player's code runs in a sandboxed `<iframe>` and manipulates three control properties on a `falcon9` object (`fireBoosterEngine`, `rotateLeft`, `rotateRight`) each frame to control the descent.
 
 **Two-page Vite build**:
 - `index.html` — editor UI (Monaco Editor + level selector + Run button)
@@ -207,9 +207,9 @@ When adding or modifying levels in `src/levels.ts`:
 ## User Code Sandbox
 
 The three control flags on the `falcon9` object:
-- `falcon9.fireBoosterEngine` — main engine (thrust upward along rocket axis)
-- `falcon9.fireLeftThruster` — rotates rocket clockwise
-- `falcon9.fireRightThruster` — rotates rocket counter-clockwise
+- `falcon9.fireBoosterEngine` — main engine (thrust upward along rocket axis), boolean
+- `falcon9.rotateLeft` — rotates rocket counter-clockwise, 0–1 (proportional) or boolean
+- `falcon9.rotateRight` — rotates rocket clockwise, 0–1 (proportional) or boolean
 
 Read-only state accessible in user code: `falcon9.velY`, `falcon9.velX`, `falcon9.angle`, `falcon9.spin`, `falcon9.fuel`, `falcon9.posX`, `falcon9.posY`
 

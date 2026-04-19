@@ -85,10 +85,7 @@ run(`npm version ${bumpType} --message "chore: release v%s"`);
 const newVersion = getCurrentVersion();
 console.log(`\nBumped to: ${newVersion}`);
 
-// 3. Publish (prepublishOnly rebuilds)
-run("npm publish");
-
-// 4. Push commit + tag
+// 3. Push commit + tag (CI publishes to npm on tag push)
 try {
   run("git push --follow-tags");
 } catch {

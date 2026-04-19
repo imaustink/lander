@@ -1,7 +1,7 @@
 import type { Falcon9 } from "./entities/falcon-9.js";
 import { Vector2 } from "./engine/vector2.js";
 
-const CONTROL_FLAGS = new Set(["fireBoosterEngine", "fireLeftThruster", "fireRightThruster"]);
+const CONTROL_FLAGS = new Set(["fireBoosterEngine", "rotateLeft", "rotateRight"]);
 const FROZEN_VECTOR_PROPS = new Set(["velocity", "position"]);
 
 /** The user-facing Falcon 9 interface — the three control flags plus read-only telemetry. */
