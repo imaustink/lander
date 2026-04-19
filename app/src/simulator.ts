@@ -177,6 +177,7 @@ export function simulate(
     // ── Angle update ───────────────────────────────────────────────────────
     ({ angle: state.angle, rotMomentum: state.rotMomentum } = stepAngle(
       state.angle, state.rotMomentum, t, left, right, gravity, drag,
+      booster, state.velX, state.velY,
     ));
 
     // ── Velocity update ────────────────────────────────────────────────────

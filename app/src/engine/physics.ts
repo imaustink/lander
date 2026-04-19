@@ -39,6 +39,13 @@ export interface AngleState {
   rotMomentum: number;
 }
 
+/**
+ * Reference airspeed at which grid fins reach full authority.
+ * Below this speed, grid fin effectiveness (and rotational drag) scales
+ * linearly — mimicking the real aerodynamic dependence on dynamic pressure.
+ */
+export const GRID_FIN_REF_SPEED = 1.0;
+
 export function stepAngle(
   angle: number,
   rotMomentum: number,
@@ -47,16 +54,28 @@ export function stepAngle(
   rightActive: boolean,
   gravity: number,
   drag: number,
+  boosterActive: boolean,
+  velX: number,
+  velY: number,
 ): AngleState {
+  // Grid fin authority scales with airspeed (linear approximation of
+  // dynamic-pressure dependence).  When the main engine is firing, TVC
+  // provides full steering regardless of airspeed.
+  const airspeed = Math.sqrt(velX * velX + velY * velY);
+  const gridFinFactor = Math.min(airspeed / GRID_FIN_REF_SPEED, 1.0);
+  const steerFactor = boosterActive ? 1.0 : gridFinFactor;
+
+  const torque = 0.01 * steerFactor * t;
   if (rightActive) {
-    rotMomentum += 0.01 * t;
+    rotMomentum += torque;
   } else if (leftActive) {
-    rotMomentum -= 0.01 * t;
+    rotMomentum -= torque;
   }
 
   rotMomentum += 0.75 * Math.sin(angle) * gravity * t;
 
-  const dragVal = drag * 0.01 * t;
+  // Rotational drag — aerodynamic damping scales with airspeed
+  const dragVal = drag * gridFinFactor * 0.01 * t;
   rotMomentum += rotMomentum > 0 ? -dragVal : dragVal;
 
   angle += (Math.PI / 180) * rotMomentum;

@@ -9,6 +9,7 @@ import {
   stepAngle,
   stepVelocity,
   stepPosition,
+  GRID_FIN_REF_SPEED,
 } from "../engine/physics.js";
 
 interface Falcon9Options {
@@ -178,7 +179,7 @@ export class Falcon9 implements Entity {
       );
     }
 
-    this._updateAngle(t, leftActive, rightActive, level.gravity);
+    this._updateAngle(t, leftActive, rightActive, level.gravity, boosterActive);
     this._updateVelocity(t, boosterActive, level.gravity, level.minThrottle ?? this.enginePower);
     this._updatePosition(t, game);
 
@@ -189,11 +190,14 @@ export class Falcon9 implements Entity {
                        : 0;
     this._gimbalAngle += (targetGimbal - this._gimbalAngle) * Math.min(1, dt / 80);
 
-    // Smooth grid fin deflection: ±0.45 rad based on active thrusters
+    // Smooth grid fin deflection: ±0.45 rad based on active thrusters,
+    // scaled by airspeed so fins visually flatten out at low speed.
     const FIN_MAX = 0.45;
-    const targetFin = (leftActive && !rightActive) ? FIN_MAX
+    const airspeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+    const finAuthority = boosterActive ? 1.0 : Math.min(airspeed / GRID_FIN_REF_SPEED, 1.0);
+    const targetFin = ((leftActive && !rightActive) ? FIN_MAX
                     : (rightActive && !leftActive) ? -FIN_MAX
-                    : 0;
+                    : 0) * finAuthority;
     this._gridFinAngle += (targetFin - this._gridFinAngle) * Math.min(1, dt / 60);
 
     // Animate landing legs: deploy below 150 units altitude (~0.9s unfold)
@@ -205,9 +209,10 @@ export class Falcon9 implements Entity {
     }
   }
 
-  private _updateAngle(t: number, leftActive: boolean, rightActive: boolean, gravity: number): void {
+  private _updateAngle(t: number, leftActive: boolean, rightActive: boolean, gravity: number, boosterActive: boolean): void {
     ({ angle: this.angle, rotMomentum: this.rotationalMomentum } = stepAngle(
       this.angle, this.rotationalMomentum, t, leftActive, rightActive, gravity, this.dragCoefficient,
+      boosterActive, this.velocity.x, this.velocity.y,
     ));
   }
 

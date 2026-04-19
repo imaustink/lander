@@ -644,9 +644,14 @@ falcon9.registerController(() => {
 //
 // NEW constraint: land UPRIGHT. Tilt more than ~8.6° (0.15 rad) snaps a leg.
 //
-// Strategy: pre-tilt with thrusters, burn to kill BOTH vx and vy, then LEVEL
-// OUT before you touch down. Burn a little past zero vy so gravity gently
-// pulls you down through a short coast — that coast is when you straighten up.
+// IMPORTANT: Grid fins lose authority at low airspeed. Once the engine cuts
+// off and the rocket is coasting slowly, thrusters become very weak. You
+// MUST straighten the rocket while the engine is still firing (TVC gives
+// full steering authority regardless of airspeed).
+//
+// Strategy: pre-tilt with thrusters, burn to kill BOTH vx and vy, then
+// KEEP BURNING until the rocket is nearly vertical. Only then cut the
+// engine and coast to touchdown under gravity.
 //
 // Key insight: at tilt angle θ, the engine provides two components:
 //   lateral decel = enginePower × sin(θ)   ← kills horizontal speed
@@ -661,8 +666,8 @@ falcon9.registerController(() => {
 //   stopping altitude: (vy² − TARGET_VY²) / (2 × decel)
 //
 // Tip: pick TARGET_VY slightly negative (say −0.20) so the burn briefly
-// reverses the descent. The short coast before touchdown gives thrusters
-// time to zero the tilt.
+// reverses the descent. Then keep the engine on a bit longer to straighten
+// the rocket under TVC before cutting off.
 //
 // Monitor:
 //   falcon9.altitude           — pixels to ground
@@ -682,13 +687,16 @@ falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
-  // Once the burn is done, aim for angle 0 so thrusters level the rocket
-  // during the final gravity-driven coast.
+  // During the burn: steer toward the gravity-corrected kill angle.
+  // The burn straightens the rocket via TVC as vx is killed.
+  // After engine cutoff, grid fins are weak at low airspeed — the rocket
+  // should already be upright by the time the burn ends.
   const burnAngle = burnDone ? 0 : Math.max(-0.50, Math.min(0.50,
     -Math.atan2(vx * /* ratio */ 0, Math.max(vy - TARGET_VY, /* floor */ 0))));
   const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * /* gain */ 0;
-  falcon9.fireLeftThruster  = angleError >  /* deadband */ 0;
-  falcon9.fireRightThruster = angleError < -/* deadband */ 0;
+  // Stop commanding thrusters after burnDone — they're ineffective at low speed.
+  falcon9.fireLeftThruster  = !burnDone && angleError >  /* deadband */ 0;
+  falcon9.fireRightThruster = !burnDone && angleError < -/* deadband */ 0;
 
   // Ignite once at the kinematic stopping altitude.
   // Average decel between tilted start and upright end of burn for accuracy.
@@ -703,10 +711,11 @@ falcon9.registerController(() => {
     solution: `\
 // Level 10 — Hoverslam (solution)
 // Arc in from the upper-right, vector the single burn to kill vx and vy
-// together, then level out for a clean upright touchdown. The trick is to
-// burn slightly past zero vy (TARGET_VY = -0.20) so gravity brings the
-// rocket gently down during a short coast — that coast is when the
-// thrusters can zero the tilt.
+// together. Grid fins lose authority at low airspeed, so the rocket must
+// be nearly vertical by the time the engine cuts off — TVC during the
+// burn handles straightening. The 2.5 denominator floor in the burn-angle
+// formula keeps the tilt modest as vy shrinks, so the rocket is already
+// close to vertical when vy reaches TARGET.
 const ENGINE_10    = 0.10;
 const GRAVITY_10   = 0.010;
 const TARGET_VY_10 = -0.20;   // burn slightly past stop; coast under gravity
@@ -721,12 +730,15 @@ falcon9.registerController(() => {
   // Gravity-corrected kill angle: -atan2(vx × (E-g)/E, vy - TARGET_VY).
   // The 2.5 floor on the denom keeps the tilt modest even as vy shrinks,
   // so the rocket is already close to vertical when the burn ends.
-  // Once burnDone, target angle 0 so the final coast levels the rocket.
+  // Once burnDone, target angle 0 for the coast phase (grid fins are weak
+  // at low airspeed, but the rocket is already nearly upright).
   const burnAngle = burnDone_10 ? 0 : Math.max(-0.50, Math.min(0.50,
     -Math.atan2(vx * 0.9, Math.max(vy - TARGET_VY_10, 2.5))));
   const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * 1.2;
-  falcon9.fireLeftThruster  = angleError >  0.003;
-  falcon9.fireRightThruster = angleError < -0.003;
+  // Stop commanding thrusters once the burn is done — at low coast speed
+  // grid fins have negligible authority and the rocket is already upright.
+  falcon9.fireLeftThruster  = !burnDone_10 && angleError >  0.003;
+  falcon9.fireRightThruster = !burnDone_10 && angleError < -0.003;
 
   // Ignite at the kinematic stopping altitude. Vertical decel during the
   // burn is averaged between start (tilted) and end (upright) to reduce
