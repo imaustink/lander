@@ -32,6 +32,7 @@ declare const monaco: {
 interface MonacoEditor {
   getValue(): string;
   setValue(value: string): void;
+  onDidChangeModelContent(listener: (e: unknown) => void): { dispose(): void };
 }
 
 // ── Populate level selector ───────────────────────────────────────────────────
