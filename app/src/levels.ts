@@ -660,7 +660,7 @@ falcon9.registerController(() => {
 //   vertical decel during burn: 0.10 × cos(θ) − 0.010
 //   stopping altitude: (vy² − TARGET_VY²) / (2 × decel)
 //
-// Tip: pick TARGET_VY slightly negative (say −0.25) so the burn briefly
+// Tip: pick TARGET_VY slightly negative (say −0.20) so the burn briefly
 // reverses the descent. The short coast before touchdown gives thrusters
 // time to zero the tilt.
 //
@@ -673,7 +673,7 @@ falcon9.registerController(() => {
 
 const ENGINE    = 0.10;
 const GRAVITY   = 0.010;
-const TARGET_VY = /* try -0.25 */ 0;
+const TARGET_VY = /* try -0.20 */ 0;
 let   burning   = false;
 let   burnDone  = false;
 
@@ -691,8 +691,9 @@ falcon9.registerController(() => {
   falcon9.fireRightThruster = angleError < -/* deadband */ 0;
 
   // Ignite once at the kinematic stopping altitude.
-  // Vertical decel depends on tilt: enginePower × cos(θ) − gravity.
-  const aNet    = Math.max(0.005, ENGINE * Math.cos(burnAngle) - GRAVITY);
+  // Average decel between tilted start and upright end of burn for accuracy.
+  const aNetStart = Math.max(0.005, ENGINE * Math.cos(burnAngle) - GRAVITY);
+  const aNet      = (aNetStart + (ENGINE - GRAVITY)) / 2;
   const stopAlt = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * aNet);
   if (!burning && !burnDone && alt <= stopAlt * /* margin */ 1.0 && vy > TARGET_VY) burning = true;
   if ( burning && vy <= TARGET_VY) { burning = false; burnDone = true; }
@@ -703,12 +704,12 @@ falcon9.registerController(() => {
 // Level 10 — Hoverslam (solution)
 // Arc in from the upper-right, vector the single burn to kill vx and vy
 // together, then level out for a clean upright touchdown. The trick is to
-// burn slightly past zero vy (TARGET_VY = -0.25) so gravity brings the
+// burn slightly past zero vy (TARGET_VY = -0.20) so gravity brings the
 // rocket gently down during a short coast — that coast is when the
 // thrusters can zero the tilt.
 const ENGINE_10    = 0.10;
 const GRAVITY_10   = 0.010;
-const TARGET_VY_10 = -0.25;   // burn slightly past stop; coast under gravity
+const TARGET_VY_10 = -0.20;   // burn slightly past stop; coast under gravity
 let   burning_10   = false;
 let   burnDone_10  = false;
 
@@ -727,9 +728,13 @@ falcon9.registerController(() => {
   falcon9.fireLeftThruster  = angleError >  0.003;
   falcon9.fireRightThruster = angleError < -0.003;
 
-  // Ignite at the kinematic stopping altitude. Vertical decel during a
-  // tilted burn is enginePower × cos(θ) - gravity, not the full NET_DECEL.
-  const aNet    = Math.max(0.005, ENGINE_10 * Math.cos(burnAngle) - GRAVITY_10);
+  // Ignite at the kinematic stopping altitude. Vertical decel during the
+  // burn is averaged between start (tilted) and end (upright) to reduce
+  // overestimation of stopping distance — the burn straightens as vx is
+  // killed, so actual decel increases throughout the manoeuvre.
+  const aNetStart = Math.max(0.005, ENGINE_10 * Math.cos(burnAngle) - GRAVITY_10);
+  const aNetEnd   = ENGINE_10 - GRAVITY_10;
+  const aNet      = (aNetStart + aNetEnd) / 2;
   const stopAlt = Math.max(0, vy * vy - TARGET_VY_10 * TARGET_VY_10) / (2 * aNet);
   if (!burning_10 && !burnDone_10 && alt <= stopAlt * 1.06 && vy > TARGET_VY_10) burning_10 = true;
   if ( burning_10 && vy <= TARGET_VY_10) { burning_10 = false; burnDone_10 = true; }
