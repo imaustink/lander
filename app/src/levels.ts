@@ -623,86 +623,116 @@ falcon9.registerController(() => {
       fuel: 200,
       fuelConsumptionRate: 0.10,
       enginePower: 0.10,
-      canReignite: true,
+      canReignite: false,
       maxLandingVelocity: 0.5,
-      landingPad: { width: 40 },
+      // Stick the landing upright — tilt more than ~8.6° at touchdown snaps a leg.
+      maxLandingAngle: 0.15,
+      landingPad: { width: 110 },
       minThrottle: 0.10,
       initialAngle: 0.0,
-      initialSpin: 0.25,
-      initialPosition: { y: 40 },
-      initialVelocity: { x: 0.05, y: 3.0 },
+      initialSpin: 0.2,
+      // Spawn in the upper-right with a leftward lateral velocity scaled to
+      // canvas width, so on every screen size the rocket carves a long
+      // parabolic arc across the sky toward the landing pad at canvas centre.
+      initialPosition: { xRatio: 0.80, y: 50 },
+      initialVelocity: { xPerWidth: -0.0012, y: 1.5 },
     },
     starter: `\
 // Level 10 — Hoverslam
-// The rocket is spinning and drifting sideways. Three problems to solve:
-//   1. Kill the spin and get upright (left/right thrusters)
-//   2. Steer slightly toward the pad (tilt into the drift, use engine for lateral force)
-//   3. Fire the main engine at the exact right altitude to arrest your fall
+// The rocket launches from the upper-right, arcing left toward the pad.
+// It's also spinning. You get ONE engine ignition — no re-ignition.
+//
+// NEW constraint: land UPRIGHT. Tilt more than ~8.6° (0.15 rad) snaps a leg.
+//
+// Strategy: pre-tilt with thrusters, burn to kill BOTH vx and vy, then LEVEL
+// OUT before you touch down. Burn a little past zero vy so gravity gently
+// pulls you down through a short coast — that coast is when you straighten up.
+//
+// Key insight: at tilt angle θ, the engine provides two components:
+//   lateral decel = enginePower × sin(θ)   ← kills horizontal speed
+//   vertical decel = enginePower × cos(θ) − gravity   ← arrests fall
+//
+// Gravity-corrected kill angle:
+//   θ = −atan2(vx × 0.9, vy − TARGET_VY)        // 0.9 = (E − g) / E
 //
 // Physics:
-//   enginePower = 0.10  |  gravity = 0.010  |  net decel = 0.09
-//   Stopping distance: (vy² - targetVy²) / (2 × 0.09)
-//   Landing velocity = |vx| + |vy| — lateral speed counts against your budget!
+//   enginePower = 0.10  |  gravity = 0.010
+//   vertical decel during burn: 0.10 × cos(θ) − 0.010
+//   stopping altitude: (vy² − TARGET_VY²) / (2 × decel)
 //
-// Tip: tilt SLIGHTLY against your lateral drift so the engine nudges you toward pad center.
-//   targetAngle ≈ -dx * kP - vx * kD   (try kP = 0.001, kD = 0.2)
+// Tip: pick TARGET_VY slightly negative (say −0.25) so the burn briefly
+// reverses the descent. The short coast before touchdown gives thrusters
+// time to zero the tilt.
 //
 // Monitor:
 //   falcon9.altitude           — pixels to ground
 //   falcon9.velocity.y         — downward speed
-//   falcon9.velocity.x         — lateral speed
-//   falcon9.position.x         — horizontal position
-//   falcon9.angle              — tilt (radians, + = right)
-//   falcon9.rotationalMomentum — spin rate
+//   falcon9.velocity.x         — lateral speed (negative = moving left)
+//   falcon9.angle              — tilt in radians (+ = right)
+//   falcon9.rotationalMomentum — spin rate (residual tumble)
 
-const NET_DECEL = 0.10 - 0.010;
-const TARGET_VY = 0.3;
+const ENGINE    = 0.10;
+const GRAVITY   = 0.010;
+const TARGET_VY = /* try -0.25 */ 0;
 let   burning   = false;
+let   burnDone  = false;
 
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;
-  const dx   = falcon9.position.x - padX;
-  const vx   = falcon9.velocity.x;
-  const vy   = falcon9.velocity.y;
-  const alt  = falcon9.altitude;
+  const vx  = falcon9.velocity.x;
+  const vy  = falcon9.velocity.y;
+  const alt = falcon9.altitude;
 
-  // 1. PD angle control — null spin, lean against lateral drift
-  const targetAngle = Math.max(-0.05, Math.min(0.05, -dx * /* kP */ 0 - vx * /* kD */ 0));
-  const angleError  = falcon9.angle - targetAngle + falcon9.rotationalMomentum * /* gain */ 0;
-  falcon9.fireLeftThruster  = angleError > 0.03;
-  falcon9.fireRightThruster = angleError < -0.03;
+  // Once the burn is done, aim for angle 0 so thrusters level the rocket
+  // during the final gravity-driven coast.
+  const burnAngle = burnDone ? 0 : Math.max(-0.50, Math.min(0.50,
+    -Math.atan2(vx * /* ratio */ 0, Math.max(vy - TARGET_VY, /* floor */ 0))));
+  const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * /* gain */ 0;
+  falcon9.fireLeftThruster  = angleError >  /* deadband */ 0;
+  falcon9.fireRightThruster = angleError < -/* deadband */ 0;
 
-  // 2. Hoverslam — compute ignition altitude and latch the burn
-  const ignitionAlt = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * NET_DECEL);
-  if (!burning && alt <= ignitionAlt * 1.08 && vy > TARGET_VY) burning = true;
-  if (burning  && vy <= TARGET_VY)                              burning = false;
+  // Ignite once at the kinematic stopping altitude.
+  // Vertical decel depends on tilt: enginePower × cos(θ) − gravity.
+  const aNet    = Math.max(0.005, ENGINE * Math.cos(burnAngle) - GRAVITY);
+  const stopAlt = Math.max(0, vy * vy - TARGET_VY * TARGET_VY) / (2 * aNet);
+  if (!burning && !burnDone && alt <= stopAlt * /* margin */ 1.0 && vy > TARGET_VY) burning = true;
+  if ( burning && vy <= TARGET_VY) { burning = false; burnDone = true; }
   falcon9.fireBoosterEngine = burning;
 });
 `,
     solution: `\
 // Level 10 — Hoverslam (solution)
-// PD control kills spin and steers toward pad; hoverslam handles vertical.
-const NET_DECEL_10 = 0.10 - 0.010;
-const TARGET_VY_10 = 0.3;
+// Arc in from the upper-right, vector the single burn to kill vx and vy
+// together, then level out for a clean upright touchdown. The trick is to
+// burn slightly past zero vy (TARGET_VY = -0.25) so gravity brings the
+// rocket gently down during a short coast — that coast is when the
+// thrusters can zero the tilt.
+const ENGINE_10    = 0.10;
+const GRAVITY_10   = 0.010;
+const TARGET_VY_10 = -0.25;   // burn slightly past stop; coast under gravity
 let   burning_10   = false;
+let   burnDone_10  = false;
 
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;
-  const dx   = falcon9.position.x - padX;
-  const vx   = falcon9.velocity.x;
-  const vy   = falcon9.velocity.y;
-  const alt  = falcon9.altitude;
+  const vx  = falcon9.velocity.x;
+  const vy  = falcon9.velocity.y;
+  const alt = falcon9.altitude;
 
-  // Lean slightly against drift so the engine nudges the ship pad-ward during the burn
-  const targetAngle = Math.max(-0.05, Math.min(0.05, -dx * 0.001 - vx * 0.5));
-  const angleError  = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 2;
-  falcon9.fireLeftThruster  = angleError > 0.03;
-  falcon9.fireRightThruster = angleError < -0.03;
+  // Gravity-corrected kill angle: -atan2(vx × (E-g)/E, vy - TARGET_VY).
+  // The 2.5 floor on the denom keeps the tilt modest even as vy shrinks,
+  // so the rocket is already close to vertical when the burn ends.
+  // Once burnDone, target angle 0 so the final coast levels the rocket.
+  const burnAngle = burnDone_10 ? 0 : Math.max(-0.50, Math.min(0.50,
+    -Math.atan2(vx * 0.9, Math.max(vy - TARGET_VY_10, 2.5))));
+  const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * 1.2;
+  falcon9.fireLeftThruster  = angleError >  0.003;
+  falcon9.fireRightThruster = angleError < -0.003;
 
-  // Correct kinematic ignition altitude: (vy²-targetVy²)/(2*a)
-  const ignitionAlt = Math.max(0, vy * vy - TARGET_VY_10 * TARGET_VY_10) / (2 * NET_DECEL_10);
-  if (!burning_10 && alt <= ignitionAlt * 1.08 && vy > TARGET_VY_10) burning_10 = true;
-  if (burning_10  && vy <= TARGET_VY_10)                               burning_10 = false;
+  // Ignite at the kinematic stopping altitude. Vertical decel during a
+  // tilted burn is enginePower × cos(θ) - gravity, not the full NET_DECEL.
+  const aNet    = Math.max(0.005, ENGINE_10 * Math.cos(burnAngle) - GRAVITY_10);
+  const stopAlt = Math.max(0, vy * vy - TARGET_VY_10 * TARGET_VY_10) / (2 * aNet);
+  if (!burning_10 && !burnDone_10 && alt <= stopAlt * 1.06 && vy > TARGET_VY_10) burning_10 = true;
+  if ( burning_10 && vy <= TARGET_VY_10) { burning_10 = false; burnDone_10 = true; }
 
   falcon9.fireBoosterEngine = burning_10;
 });

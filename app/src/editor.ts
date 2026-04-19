@@ -143,6 +143,17 @@ require(["vs/editor/editor.main"], function () {
       const idx = event.data.index as number;
       currentLevel = idx;
       levelSelect.value = String(idx);
+    } else if (event.data?.type === "runLevel") {
+      // The game iframe requested a fresh run (Replay / Try Again / Next
+      // Level / Play Again). Rebuild the iframe so the user's script — and
+      // any module-scoped latch state it holds — executes from scratch.
+      const idx = event.data.index as number;
+      if (idx !== currentLevel) {
+        currentLevel = idx;
+        levelSelect.value = String(idx);
+        editor.setValue(loadCode(currentLevel));
+      }
+      runLevel(currentLevel);
     }
   });
 
@@ -170,7 +181,7 @@ require(["vs/editor/editor.main"], function () {
   });
 
   // ── Run button ──────────────────────────────────────────────────────────
-  run.addEventListener("click", () => {
+  function runLevel(targetLevel: number): void {
     const code = editor.getValue();
     if (!solutionShown) saveCode(currentLevel, code);
 
@@ -198,7 +209,7 @@ require(["vs/editor/editor.main"], function () {
         __startLevel?: number;
         game: { start(): void };
       };
-      iframeWin.__startLevel = currentLevel;
+      iframeWin.__startLevel = targetLevel;
       iframeWin.game.start();
       iframe.contentDocument!.head.appendChild(bootstrap);
       iframe.contentWindow!.focus();
@@ -207,5 +218,7 @@ require(["vs/editor/editor.main"], function () {
     };
 
     gameContainer.appendChild(iframe);
-  });
+  }
+
+  run.addEventListener("click", () => runLevel(currentLevel));
 });

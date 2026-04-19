@@ -88,15 +88,17 @@ export class Falcon9 implements Entity {
     if (level.initialAngle !== undefined) this.angle = level.initialAngle;
     if (level.initialSpin  !== undefined) this.rotationalMomentum = level.initialSpin;
     if (level.initialVelocity !== undefined) {
+      const { x, y, xPerWidth, yPerHeight } = level.initialVelocity;
       this.velocity = new Vector2(
-        level.initialVelocity.x ?? this.velocity.x,
-        level.initialVelocity.y ?? this.velocity.y,
+        xPerWidth !== undefined ? canvasW * xPerWidth : (x ?? this.velocity.x),
+        yPerHeight !== undefined ? canvasH * yPerHeight : (y ?? this.velocity.y),
       );
     }
     if (level.initialPosition !== undefined) {
+      const { x, y, xRatio, yRatio } = level.initialPosition;
       this.position = new Vector2(
-        level.initialPosition.x ?? this.position.x,
-        level.initialPosition.y ?? this.position.y,
+        xRatio !== undefined ? canvasW * xRatio : (x ?? this.position.x),
+        yRatio !== undefined ? canvasH * yRatio : (y ?? this.position.y),
       );
     }
 
@@ -161,8 +163,8 @@ export class Falcon9 implements Entity {
     );
 
     const boosterActive = this.fireBoosterEngine && hasFuel && !this._boosterSealed;
-    const leftActive = this.fireLeftThruster && hasFuel;
-    const rightActive = this.fireRightThruster && hasFuel;
+    const leftActive = this.fireLeftThruster;
+    const rightActive = this.fireRightThruster;
 
     if (boosterActive) this._boosterEverFired = true;
 
@@ -232,12 +234,16 @@ export class Falcon9 implements Entity {
           return this.position.x >= centerX - half && this.position.x <= centerX + half;
         })();
 
-      const won = this.landingVelocity! < this.maxLandingVelocity && onPad;
+      const angleOk = level.maxLandingAngle === undefined
+        || Math.abs(this.angle) <= level.maxLandingAngle;
+      const won = this.landingVelocity! < this.maxLandingVelocity && onPad && angleOk;
       game.onEnd?.(won, {
         velocity: this.landingVelocity!,
         max: this.maxLandingVelocity,
         levelIndex: game.levels.index,
         onPad,
+        angle: this.angle,
+        maxAngle: level.maxLandingAngle,
       });
     }
   }

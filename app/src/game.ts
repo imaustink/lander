@@ -36,9 +36,18 @@ game.onLevelLoad = (_level: LevelConfig, _index: number) => {
 
 // ── End-of-level handler ────────────────────────────────────────────────────
 
-game.onEnd = (won, { velocity, max, levelIndex, onPad }) => {
+// Ask the parent editor to fully re-run the user's code for the given level.
+// This recreates the iframe so module-scoped state in the user's script
+// (e.g. latch flags like `burning_10`) is reset on replay.
+function requestRun(levelIndex: number): void {
+  window.parent.postMessage({ type: "runLevel", index: levelIndex }, "*");
+}
+
+game.onEnd = (won, { velocity, max, levelIndex, onPad, angle, maxAngle }) => {
   game.pause();
   const levelName = game.levels.current.id ?? `Level ${levelIndex + 1}`;
+
+  const replay = { label: "Replay", onAction: () => requestRun(levelIndex) };
 
   if (won) {
     if (game.levels.hasNext) {
@@ -47,7 +56,8 @@ game.onEnd = (won, { velocity, max, levelIndex, onPad }) => {
         `${levelName} complete!`,
         `Landing velocity: ${velocity.toFixed(2)} (max ${max.toFixed(2)})`,
         "Next Level",
-        () => game.loadLevel(levelIndex + 1),
+        () => requestRun(levelIndex + 1),
+        replay,
       );
     } else {
       showOverlay(
@@ -55,19 +65,24 @@ game.onEnd = (won, { velocity, max, levelIndex, onPad }) => {
         "Mission accomplished!",
         "All 10 levels complete. You nailed every landing.",
         "Play Again",
-        () => game.loadLevel(0),
+        () => requestRun(0),
+        replay,
       );
     }
   } else {
+    const tiltDeg = (angle * 180 / Math.PI).toFixed(1);
+    const maxDeg  = maxAngle !== undefined ? (maxAngle * 180 / Math.PI).toFixed(1) : null;
     const detail = !onPad
       ? "Missed the landing pad."
-      : `Landing velocity: ${velocity.toFixed(2)} — max allowed: ${max.toFixed(2)}`;
+      : (maxAngle !== undefined && Math.abs(angle) > maxAngle)
+        ? `Landed at ${tiltDeg}° tilt — max allowed: ±${maxDeg}°`
+        : `Landing velocity: ${velocity.toFixed(2)} — max allowed: ${max.toFixed(2)}`;
     showOverlay(
       "failure",
       `${levelName} failed`,
       detail,
       "Try Again",
-      () => game.loadLevel(levelIndex),
+      () => requestRun(levelIndex),
     );
   }
 };
@@ -76,12 +91,18 @@ game.onEnd = (won, { velocity, max, levelIndex, onPad }) => {
 
 type OverlayKind = "success" | "failure";
 
+interface OverlayAction {
+  label: string;
+  onAction: () => void;
+}
+
 function showOverlay(
   kind: OverlayKind,
   heading: string,
   detail: string,
   buttonLabel: string,
   onAction: () => void,
+  secondary?: OverlayAction,
 ): void {
   document.getElementById("__overlay")?.remove();
 
@@ -104,16 +125,24 @@ function showOverlay(
   p.textContent = detail;
   p.style.cssText = "margin:0;font-size:13px;color:#8b949e;";
 
+  const actions = document.createElement("div");
+  actions.style.cssText = "margin-top:8px;display:flex;gap:10px;align-items:center;";
+
   const btn = document.createElement("button");
   btn.textContent = buttonLabel;
   btn.style.cssText = `
-    margin-top:8px;padding:8px 24px;background:${accentColor};color:#fff;
+    padding:8px 24px;background:${accentColor};color:#fff;
     border:none;border-radius:6px;font-size:13px;font-weight:700;
     letter-spacing:0.5px;cursor:pointer;
   `;
-  const handleAction = (): void => {
+
+  const cleanup = (): void => {
     overlay.remove();
     document.removeEventListener("keydown", onKeyDown);
+  };
+
+  const handleAction = (): void => {
+    cleanup();
     onAction();
   };
 
@@ -123,8 +152,30 @@ function showOverlay(
 
   btn.addEventListener("click", handleAction);
   document.addEventListener("keydown", onKeyDown);
+  actions.appendChild(btn);
 
-  overlay.append(h2, p, btn);
+  if (secondary) {
+    const secondaryBtn = document.createElement("button");
+    secondaryBtn.textContent = secondary.label;
+    secondaryBtn.style.cssText = `
+      padding:8px 20px;background:transparent;color:#e6edf3;
+      border:1px solid #30363d;border-radius:6px;font-size:13px;font-weight:600;
+      letter-spacing:0.5px;cursor:pointer;transition:border-color 0.15s,color 0.15s;
+    `;
+    secondaryBtn.addEventListener("mouseenter", () => {
+      secondaryBtn.style.borderColor = "#8b949e";
+    });
+    secondaryBtn.addEventListener("mouseleave", () => {
+      secondaryBtn.style.borderColor = "#30363d";
+    });
+    secondaryBtn.addEventListener("click", () => {
+      cleanup();
+      secondary.onAction();
+    });
+    actions.appendChild(secondaryBtn);
+  }
+
+  overlay.append(h2, p, actions);
   document.body.appendChild(overlay);
   btn.focus();
 }

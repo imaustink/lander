@@ -67,7 +67,11 @@ export interface SimResult {
   won: boolean;
   landed: boolean;
   landingVelocity: number | null;
+  /** Tilt (radians) at touchdown, or final angle on timeout */
+  landingAngle: number;
   onPad: boolean;
+  /** X position at touchdown (or final X on timeout — useful for missed-pad diagnostics) */
+  posX: number;
   frames: number;
   fuelUsed: number;
   /** Reason the run ended */
@@ -92,11 +96,21 @@ export function simulate(
 
   // Resolve initial state from level config — mirrors Falcon9 constructor
   const initPosX =
-    level.initialPosition?.x ?? canvasWidth / 2;
+    level.initialPosition?.xRatio !== undefined
+      ? canvasWidth * level.initialPosition.xRatio
+      : level.initialPosition?.x ?? canvasWidth / 2;
   const initPosY =
-    level.initialPosition?.y ?? getRandomInt(0, canvasHeight / 4);
-  const initVelX = level.initialVelocity?.x ?? getRandomInt(-1000, 1000) / 1000;
-  const initVelY = level.initialVelocity?.y ?? getRandomInt(0, 1000) / 1000;
+    level.initialPosition?.yRatio !== undefined
+      ? canvasHeight * level.initialPosition.yRatio
+      : level.initialPosition?.y ?? getRandomInt(0, canvasHeight / 4);
+  const initVelX =
+    level.initialVelocity?.xPerWidth !== undefined
+      ? canvasWidth * level.initialVelocity.xPerWidth
+      : level.initialVelocity?.x ?? getRandomInt(-1000, 1000) / 1000;
+  const initVelY =
+    level.initialVelocity?.yPerHeight !== undefined
+      ? canvasHeight * level.initialVelocity.yPerHeight
+      : level.initialVelocity?.y ?? getRandomInt(0, 1000) / 1000;
   const initAngle = level.initialAngle ?? getRandomInt(-500, 500) / 1000;
   const initSpin  = level.initialSpin  ?? getRandomInt(-100, 100) / 1000;
 
@@ -149,8 +163,8 @@ export function simulate(
       state._boosterSealed,
     );
     const booster = state.fireBoosterEngine && hasFuel && !state._boosterSealed;
-    const left    = state.fireLeftThruster  && hasFuel;
-    const right   = state.fireRightThruster && hasFuel;
+    const left    = state.fireLeftThruster;
+    const right   = state.fireRightThruster;
     if (booster) state._boosterEverFired = true;
 
     // Fuel consumption — thrusters (grid fins / thrust vectoring) are free;
@@ -193,13 +207,17 @@ export function simulate(
         const half = padConf.width / 2;
         state.onPad = state.posX >= cx - half && state.posX <= cx + half;
       }
-      state.won = state.landingVelocity! < level.maxLandingVelocity && state.onPad;
+      state.won = state.landingVelocity! < level.maxLandingVelocity
+        && state.onPad
+        && (level.maxLandingAngle === undefined || Math.abs(state.angle) <= level.maxLandingAngle);
 
       return {
         won: state.won,
         landed: true,
         landingVelocity: state.landingVelocity,
+        landingAngle: state.angle,
         onPad: state.onPad,
+        posX: state.posX,
         frames: f + 1,
         fuelUsed: isFinite(fuelStart) ? fuelStart - state.fuelRemaining : 0,
         reason: "landed",
@@ -209,9 +227,11 @@ export function simulate(
 
   return {
     won: false,
+    landingAngle: state.angle,
     landed: false,
     landingVelocity: null,
     onPad: false,
+    posX: state.posX,
     frames: maxFrames,
     fuelUsed: isFinite(fuelStart) ? fuelStart - state.fuelRemaining : 0,
     reason: "timeout",

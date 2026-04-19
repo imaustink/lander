@@ -24,7 +24,8 @@
 
 import { describe, it, expect } from "vitest";
 import { LEVELS } from "./levels.js";
-import { simulate, type SimState, type ControllerFn } from "./simulator.js";
+import { simulate } from "./simulator.js";
+import { compileController, runTrials } from "./sim-utils.js";
 
 // ── Canvas size profiles ──────────────────────────────────────────────────────
 //
@@ -40,109 +41,6 @@ const CANVAS_PROFILES: Array<{ label: string; w: number; h: number }> = [
   { label: "1100×900 (1080p half-screen)",  w: 1100, h:  900 },
   { label: "1280×960 (1440p half-screen)",  w: 1280, h:  960 },
 ];
-
-// ── Solution compiler ─────────────────────────────────────────────────────────
-//
-// The solution strings reference `falcon9` and `game` as globals and use
-// setInterval for a game loop. We evaluate them in a controlled scope where:
-//
-//   falcon9  → proxy onto SimState (posX/posY mapped to position.x/y etc.)
-//   game     → minimal stub with canvas and levels.current
-//
-// setInterval calls are collected; the returned ControllerFn calls them all
-// synchronously once per simulated frame — matching the real 16ms interval.
-
-function compileController(
-  solutionCode: string,
-  levelIndex: number,
-  canvasWidth = 800,
-  canvasHeight = 600,
-): ControllerFn {
-  const intervals: Array<() => void> = [];
-  let initialised = false;
-
-  // Stable nested objects — reassigned each frame to point at current state
-  // so that closures captured in the solution code always see fresh values.
-  let _state: SimState;
-
-  const velocity = {
-    get x() { return _state.velX; },
-    set x(v: number) { _state.velX = v; },
-    get y() { return _state.velY; },
-    set y(v: number) { _state.velY = v; },
-  };
-
-  const position = {
-    get x() { return _state.posX; },
-    set x(v: number) { _state.posX = v; },
-    get y() { return _state.posY; },
-  };
-
-  const falcon9 = {
-    get fireBoosterEngine() { return _state.fireBoosterEngine; },
-    set fireBoosterEngine(v: boolean) { _state.fireBoosterEngine = v; },
-    get fireLeftThruster() { return _state.fireLeftThruster; },
-    set fireLeftThruster(v: boolean) { _state.fireLeftThruster = v; },
-    get fireRightThruster() { return _state.fireRightThruster; },
-    set fireRightThruster(v: boolean) { _state.fireRightThruster = v; },
-    get velocity() { return velocity; },
-    get position() { return position; },
-    get angle() { return _state.angle; },
-    get rotationalMomentum() { return _state.rotMomentum; },
-    get fuelRemaining() { return _state.fuelRemaining; },
-    get altitude() { return (_state as SimState & { altitude: number }).altitude; },
-    registerController: (fn: () => void) => { intervals.push(fn); },
-  };
-
-  const level = LEVELS[levelIndex].config;
-  const game = {
-    canvas: { width: canvasWidth, height: canvasHeight },
-    levels: { current: level },
-  };
-
-  const fakeSetInterval = (fn: () => void) => { intervals.push(fn); };
-
-  return (state: SimState) => {
-    _state = state;
-
-    if (!initialised) {
-      initialised = true;
-      // eslint-disable-next-line no-new-func
-      const fn = new Function("falcon9", "game", "setInterval", solutionCode);
-      fn(falcon9, game, fakeSetInterval);
-    }
-
-    for (const cb of intervals) cb();
-  };
-}
-
-// ── Trial runner ──────────────────────────────────────────────────────────────
-
-interface TrialOptions {
-  trials?: number;
-  canvasWidth?: number;
-  canvasHeight?: number;
-}
-
-function runTrials(
-  levelIndex: number,
-  opts: TrialOptions = {},
-) {
-  const { trials = 1, canvasWidth = 800, canvasHeight = 600 } = opts;
-  const { config, solution } = LEVELS[levelIndex];
-
-  let passed = 0;
-  let maxFrames = 0;
-  for (let t = 0; t < trials; t++) {
-    const controller = compileController(solution, levelIndex, canvasWidth, canvasHeight);
-    const result = simulate(config, controller, { canvasWidth, canvasHeight });
-    if (result.won) passed++;
-    if (result.frames > maxFrames) maxFrames = result.frames;
-  }
-
-  const passRate = passed / trials;
-  return { passed, trials, passRate, maxFrames };
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Canvas-size sweep — all solutions must pass at every viewport profile

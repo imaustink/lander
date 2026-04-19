@@ -25,7 +25,7 @@ export class GameEngine {
   groundY: number = 0;
 
   onLevelLoad?: (level: LevelConfig, index: number) => void;
-  onEnd?: (won: boolean, details: { velocity: number; max: number; levelIndex: number; onPad: boolean }) => void;
+  onEnd?: (won: boolean, details: { velocity: number; max: number; levelIndex: number; onPad: boolean; angle: number; maxAngle?: number }) => void;
 
   constructor(canvasId: string) {
     const canvas = document.getElementById(canvasId) as HTMLCanvasElement | null;

@@ -13,6 +13,8 @@ export interface LevelConfig {
   canReignite: boolean;
   /** Maximum combined landing velocity for a successful landing */
   maxLandingVelocity: number;
+  /** Maximum absolute tilt (radians) at touchdown. Omit to skip the angle check. */
+  maxLandingAngle?: number;
   /** Optional landing pad. Rocket must land within [centerX - width/2, centerX + width/2]. centerX defaults to canvas center. */
   landingPad?: { width: number; centerX?: number };
   /** Minimum booster thrust when fired — engine fires at this power level or not at all. Overrides enginePower for thrust calculation. */
@@ -20,8 +22,21 @@ export interface LevelConfig {
   /** Optional spawn overrides — undefined fields default to random */
   initialAngle?: number;
   initialSpin?: number;
-  initialVelocity?: { x?: number; y?: number };
-  initialPosition?: { x?: number; y?: number };
+  /**
+   * Spawn velocity. `x`/`y` are absolute pixel-per-frame values; `xPerWidth`
+   * and `yPerHeight` scale the velocity to canvas dimensions and take
+   * precedence over their absolute counterparts. Use the per-width form for
+   * lateral drifts that should look the same regardless of viewport size.
+   */
+  initialVelocity?: { x?: number; y?: number; xPerWidth?: number; yPerHeight?: number };
+  /**
+   * Spawn position. `x`/`y` are absolute pixel values; `xRatio`/`yRatio` are
+   * canvas-relative fractions (0 = left/top, 1 = right/bottom) and take
+   * precedence over their absolute counterparts when supplied. Use ratios
+   * for spawns that should scale with viewport width (e.g. arcs starting
+   * at a screen edge).
+   */
+  initialPosition?: { x?: number; y?: number; xRatio?: number; yRatio?: number };
 }
 
 export class LevelManager {
