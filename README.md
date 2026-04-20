@@ -4,7 +4,7 @@ A 2D simulation game where you program rocket boosters to land.
 
 [Play Now](https://lander.kurpuis.com)
 
-![Mar-10-2023 07-06-40](./gameplay.png)
+![Mar-10-2023 07-06-40](https://raw.githubusercontent.com/austinkurpuis/lander/main/gameplay.png)
 
 ## Develop
 
