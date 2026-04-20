@@ -79,7 +79,7 @@ assertOnMainBranch();
 // 1. Run tests
 run("npm test");
 
-// 2. Bump version + create git tag (also runs prepublishOnly → build)
+// 2. Bump version + create git tag
 run(`npm version ${bumpType} --message "chore: release v%s"`);
 
 const newVersion = getCurrentVersion();

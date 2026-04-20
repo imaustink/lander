@@ -1,3 +1,6 @@
+# Build output (built by CI for deploy + publish)
+docs/
+
 # Playwright MCP server data
 .playwright-mcp/
 
