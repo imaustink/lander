@@ -190,6 +190,34 @@
         box-shadow: 0 0 0 3px #1f6feb88;
       }
 
+      /* ── Restore Default button ── */
+      #restore-default {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 12px;
+        background: transparent;
+        color: #8b949e;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s;
+        outline: none;
+      }
+      #restore-default:hover:not(:disabled) {
+        color: #e6edf3;
+        border-color: #8b949e;
+      }
+      #restore-default:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      #restore-default:focus-visible {
+        box-shadow: 0 0 0 3px #8b949e44;
+      }
+
       /* ── Show Solution button ── */
       #show-solution {
         display: inline-flex;
@@ -206,9 +234,13 @@
         transition: color 0.15s, border-color 0.15s;
         outline: none;
       }
-      #show-solution:hover {
+      #show-solution:hover:not(:disabled) {
         color: #e6edf3;
         border-color: #8b949e;
+      }
+      #show-solution:disabled {
+        opacity: 0.4;
+        cursor: default;
       }
       #show-solution:focus-visible {
         box-shadow: 0 0 0 3px #8b949e44;
@@ -329,6 +361,7 @@
           </div>
           <div class="panel-header-actions">
             <select id="level-select" title="Select level"></select>
+            <button id="restore-default" type="button">Restore Default</button>
             <button id="show-solution" type="button">Show Solution</button>
             <button id="run" type="button">&#9654;&nbsp; Run</button>
           </div>

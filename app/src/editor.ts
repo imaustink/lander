@@ -7,6 +7,7 @@ const gameDot         = document.getElementById("game-dot")         as HTMLEleme
 const run             = document.getElementById("run")              as HTMLButtonElement;
 const levelSelect     = document.getElementById("level-select")     as HTMLSelectElement;
 const showSolution    = document.getElementById("show-solution")    as HTMLButtonElement;
+const restoreDefault  = document.getElementById("restore-default")  as HTMLButtonElement;
 const confirmDialog   = document.getElementById("confirm-solution") as HTMLDialogElement;
 const dialogCancel    = document.getElementById("dialog-cancel")    as HTMLButtonElement;
 const dialogConfirm   = document.getElementById("dialog-confirm")   as HTMLButtonElement;
@@ -128,12 +129,22 @@ require(["vs/editor/editor.main"], function () {
   // Track whether the editor currently shows the solution so we don't
   // persist it to localStorage (which would hide future solution updates).
   let solutionShown = false;
-  editor.onDidChangeModelContent(() => { solutionShown = false; });
+  function setSolutionShown(value: boolean): void {
+    solutionShown = value;
+    showSolution.disabled = value;
+    restoreDefault.disabled = editor.getValue() === LEVELS[currentLevel].starter;
+  }
+  editor.onDidChangeModelContent(() => {
+    const wasSolution = solutionShown;
+    setSolutionShown(false);
+    if (!wasSolution) saveCode(currentLevel, editor.getValue());
+  });
+  setSolutionShown(false); // set initial button states
 
   // ── Level selector ──────────────────────────────────────────────────────
   levelSelect.addEventListener("change", () => {
     if (!solutionShown) saveCode(currentLevel, editor.getValue());
-    solutionShown = false;
+    setSolutionShown(false);
     currentLevel = Number(levelSelect.value);
     editor.setValue(loadCode(currentLevel));
   });
@@ -158,6 +169,13 @@ require(["vs/editor/editor.main"], function () {
     }
   });
 
+  // ── Restore Default ─────────────────────────────────────────────────────
+  restoreDefault.addEventListener("click", () => {
+    window.localStorage.removeItem(storageKey(currentLevel));
+    editor.setValue(LEVELS[currentLevel].starter);
+    setSolutionShown(false);
+  });
+
   // ── Show Solution ───────────────────────────────────────────────────────
   showSolution.addEventListener("click", () => {
     confirmDialog.showModal();
@@ -178,7 +196,7 @@ require(["vs/editor/editor.main"], function () {
     confirmDialog.close();
     saveCode(currentLevel, editor.getValue()); // preserve user's work before overwriting
     editor.setValue(LEVELS[currentLevel].solution);
-    solutionShown = true; // set after setValue so the change event doesn't clobber it
+    setSolutionShown(true); // set after setValue so the change event doesn't clobber it
   });
 
   // ── Run button ──────────────────────────────────────────────────────────
