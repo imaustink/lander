@@ -4,7 +4,7 @@ A 2D simulation game where you program rocket boosters to land.
 
 [Play Now](https://lander.kurpuis.com)
 
-![Mar-10-2023 07-06-40](https://raw.githubusercontent.com/imaustink/lander/refs/heads/main/gameplay.png)
+![Mar-10-2023 07-06-40](https://raw.githubusercontent.com/imaustink/lander/refs/heads/main/img/gameplay.png)
 
 ## Getting Started
 
@@ -35,7 +35,7 @@ npx @k5s/lander
 git clone https://github.com/imaustink/lander.git
 cd lander
 npm install
-npm start
+npm run dev
 ```
 
 Then navigate to [http://localhost:3000](http://localhost:3000).
