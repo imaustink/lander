@@ -30,6 +30,10 @@
   },
   "author": "Austin Kurpuis <a@kurpuis.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imaustink/lander.git"
+  },
   "dependencies": {
     "@playwright/mcp": "^0.0.70",
     "monaco-editor": "^0.36.1"
