@@ -1,6 +1,6 @@
 {
   "name": "@k5s/lander",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A lunar lander game where you write code to control the lander and safely land on the moon.",
   "scripts": {
     "dev": "vite --port 3000",
