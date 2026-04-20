@@ -112,6 +112,46 @@ test.describe("Level selector", () => {
   });
 });
 
+test.describe("Auto-save", () => {
+  test("typing in the editor persists code to localStorage", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#editor .monaco-editor").waitFor({ timeout: 20_000 });
+
+    const CUSTOM_SNIPPET = "// autosave-test-marker";
+
+    // Set editor content programmatically (triggers onDidChangeModelContent)
+    await page.evaluate((code) => {
+      (window as unknown as Record<string, { setValue(v: string): void }>).__editor.setValue(code);
+    }, CUSTOM_SNIPPET);
+
+    // localStorage should already contain the new code
+    const stored = await page.evaluate(() =>
+      localStorage.getItem("lander:code:level0")
+    );
+    expect(stored).toBe(CUSTOM_SNIPPET);
+  });
+
+  test("auto-saved code survives a page reload", async ({ page }) => {
+    await page.goto("/");
+    await page.locator("#editor .monaco-editor").waitFor({ timeout: 20_000 });
+
+    const CUSTOM_SNIPPET = "// reload-persist-test";
+
+    await page.evaluate((code) => {
+      (window as unknown as Record<string, { setValue(v: string): void }>).__editor.setValue(code);
+    }, CUSTOM_SNIPPET);
+
+    // Reload and verify the editor restores the saved code
+    await page.reload();
+    await page.locator("#editor .monaco-editor").waitFor({ timeout: 20_000 });
+
+    const editorText = await page.evaluate(() =>
+      (window as unknown as Record<string, { getValue(): string }>).__editor.getValue()
+    );
+    expect(editorText).toBe(CUSTOM_SNIPPET);
+  });
+});
+
 test.describe("Run button", () => {
   test("clicking Run creates a game iframe", async ({ page }) => {
     await page.goto("/");
