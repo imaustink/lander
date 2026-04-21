@@ -61,6 +61,9 @@ export function compileController(
   const game = {
     canvas: { width: canvasWidth, height: canvasHeight },
     levels: { current: level },
+    get width() { return canvasWidth; },
+    get height() { return canvasHeight; },
+    get scale() { return canvasHeight / 600; },
   };
 
   const fakeSetInterval = (fn: () => void) => { intervals.push(fn); };

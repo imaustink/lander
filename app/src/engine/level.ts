@@ -28,15 +28,17 @@ export interface LevelConfig {
    * precedence over their absolute counterparts. Use the per-width form for
    * lateral drifts that should look the same regardless of viewport size.
    */
-  initialVelocity?: { x?: number; y?: number; xPerWidth?: number; yPerHeight?: number };
+  initialVelocity?: { x?: number; y?: number; xPerWidth?: number; xPerHeight?: number; yPerHeight?: number };
   /**
    * Spawn position. `x`/`y` are absolute pixel values; `xRatio`/`yRatio` are
    * canvas-relative fractions (0 = left/top, 1 = right/bottom) and take
    * precedence over their absolute counterparts when supplied. Use ratios
    * for spawns that should scale with viewport width (e.g. arcs starting
-   * at a screen edge).
+   * at a screen edge). `xPerHeight` sets x = canvasHeight × value, useful
+   * when horizontal distance must stay proportional to physics (which scales
+   * with height); it takes precedence over `xRatio` and `x`.
    */
-  initialPosition?: { x?: number; y?: number; xRatio?: number; yRatio?: number };
+  initialPosition?: { x?: number; y?: number; xRatio?: number; yRatio?: number; xPerHeight?: number };
 }
 
 export class LevelManager {

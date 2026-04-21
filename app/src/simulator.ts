@@ -90,24 +90,29 @@ export function simulate(
   const canvasHeight = opts.canvasHeight ?? 600;
   const dt           = opts.dt           ?? 16.67;
   const maxFrames    = opts.maxFrames    ?? 18_000;
-  // Match actual Falcon9 entity defaults: width=12, height=104, _effectiveHeight=104+14=118
+  const ps           = canvasHeight / 600;    // physics scale
+  // Match actual Falcon9 entity defaults (unscaled pixel dimensions)
   const shipWidth    = opts.shipWidth    ?? 12;
   const shipHeight   = opts.shipHeight   ?? 118;
   const drag         = opts.dragCoefficient ?? 0.05;
 
   // Resolve initial state from level config — mirrors Falcon9 constructor
   const initPosX =
-    level.initialPosition?.xRatio !== undefined
-      ? canvasWidth * level.initialPosition.xRatio
-      : level.initialPosition?.x ?? canvasWidth / 2;
+    level.initialPosition?.xPerHeight !== undefined
+      ? canvasHeight * level.initialPosition.xPerHeight
+      : level.initialPosition?.xRatio !== undefined
+        ? canvasWidth * level.initialPosition.xRatio
+        : level.initialPosition?.x ?? canvasWidth / 2;
   const initPosY =
     level.initialPosition?.yRatio !== undefined
       ? canvasHeight * level.initialPosition.yRatio
       : level.initialPosition?.y ?? getRandomInt(0, canvasHeight / 4);
   const initVelX =
-    level.initialVelocity?.xPerWidth !== undefined
-      ? canvasWidth * level.initialVelocity.xPerWidth
-      : level.initialVelocity?.x ?? getRandomInt(-1000, 1000) / 1000;
+    level.initialVelocity?.xPerHeight !== undefined
+      ? canvasHeight * level.initialVelocity.xPerHeight
+      : level.initialVelocity?.xPerWidth !== undefined
+        ? canvasWidth * level.initialVelocity.xPerWidth
+        : level.initialVelocity?.x ?? getRandomInt(-1000, 1000) / 1000;
   const initVelY =
     level.initialVelocity?.yPerHeight !== undefined
       ? canvasHeight * level.initialVelocity.yPerHeight
@@ -144,8 +149,9 @@ export function simulate(
   Object.defineProperty(state, "altitude", { get: getAltitude });
 
   const fuelStart = level.fuel;
-  const gravity   = level.gravity;
-  const thrustPower = level.minThrottle ?? level.enginePower;
+  const gravity   = level.gravity * ps;
+  const thrustPower = (level.minThrottle ?? level.enginePower) * ps;
+  const maxLandingV = level.maxLandingVelocity * ps;
 
   for (let f = 0; f < maxFrames; f++) {
     state.frame = f;
@@ -178,7 +184,7 @@ export function simulate(
     // ── Angle update ───────────────────────────────────────────────────────
     ({ angle: state.angle, rotMomentum: state.rotMomentum } = stepAngle(
       state.angle, state.rotMomentum, t, left, right, gravity, drag,
-      booster, state.velX, state.velY,
+      booster, state.velX, state.velY, ps,
     ));
 
     // ── Velocity update ────────────────────────────────────────────────────
@@ -206,10 +212,10 @@ export function simulate(
         state.onPad = true;
       } else {
         const cx   = padConf.centerX ?? canvasWidth / 2;
-        const half = padConf.width / 2;
+        const half = (padConf.width * ps) / 2;
         state.onPad = state.posX >= cx - half && state.posX <= cx + half;
       }
-      state.won = state.landingVelocity! < level.maxLandingVelocity
+      state.won = state.landingVelocity! < maxLandingV
         && state.onPad
         && (level.maxLandingAngle === undefined || Math.abs(state.angle) <= level.maxLandingAngle);
 

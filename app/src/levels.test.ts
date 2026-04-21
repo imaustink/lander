@@ -40,6 +40,10 @@ const CANVAS_PROFILES: Array<{ label: string; w: number; h: number }> = [
   { label: "1000×850 (large laptop)",       w: 1000, h:  850 },
   { label: "1100×900 (1080p half-screen)",  w: 1100, h:  900 },
   { label: "1280×960 (1440p half-screen)",  w: 1280, h:  960 },
+  { label: "1600×900 (1080p full-width)",   w: 1600, h:  900 },
+  { label: "1920×1080 (1080p full)",        w: 1920, h: 1080 },
+  { label: "1280×1440 (1440p half-screen)", w: 1280, h: 1440 },
+  { label: "2560×1440 (1440p full)",        w: 2560, h: 1440 },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -5,6 +5,14 @@ import { InputManager } from "./input-manager.js";
 
 const MAX_DT = 100; // ms — prevents physics spiral after tab-switch
 
+/**
+ * Reference canvas height that all level configs and physics constants were
+ * authored for. The ratio `canvas.height / REF_HEIGHT` is exposed as
+ * `game.scale` so that physics, visual element sizes, and user-code
+ * thresholds can adapt to any viewport size.
+ */
+const REF_HEIGHT = 600;
+
 export class GameEngine {
   readonly canvas: HTMLCanvasElement;
   private readonly _ctx: CanvasRenderingContext2D;
@@ -23,6 +31,13 @@ export class GameEngine {
   cameraTarget: { position: { x: number } } | null = null;
   /** Y coordinate of the ground plane (world units). Defaults to canvas.height; surface entities may raise it. */
   groundY: number = 0;
+
+  /** Ratio of canvas height to the reference height (600) all levels were authored for. */
+  get scale(): number { return this.canvas.height / REF_HEIGHT; }
+  /** Logical game-world width (= native canvas width). */
+  get width(): number { return this.canvas.width; }
+  /** Logical game-world height (= native canvas height). */
+  get height(): number { return this.canvas.height; }
 
   onLevelLoad?: (level: LevelConfig, index: number) => void;
   onEnd?: (won: boolean, details: { velocity: number; max: number; levelIndex: number; onPad: boolean; angle: number; maxAngle?: number }) => void;
@@ -89,8 +104,8 @@ export class GameEngine {
     // ── Horizontal camera scroll (dead zone) ─────────────────────────────────
     if (this.cameraTarget !== null) {
       const screenX = this.cameraTarget.position.x - this.cameraX;
-      const deadLeft  = this.canvas.width * 0.3;
-      const deadRight = this.canvas.width * 0.7;
+      const deadLeft  = this.width * 0.3;
+      const deadRight = this.width * 0.7;
       if (screenX < deadLeft)  this.cameraX = this.cameraTarget.position.x - deadLeft;
       if (screenX > deadRight) this.cameraX = this.cameraTarget.position.x - deadRight;
     }

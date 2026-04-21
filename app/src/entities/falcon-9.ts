@@ -57,12 +57,15 @@ export class Falcon9 implements Entity {
   private _gimbalAngle = 0;    // TVC nozzle deflection in radians
   private _gridFinAngle = 0;   // grid fin deflection in radians
   private _game!: GameEngine;
+  /** canvas.height / 600 — scales physics to match any viewport */
+  private readonly _ps: number;
 
   constructor(game: GameEngine, options: Falcon9Options = {}) {
     this._game = game;
     const level = game.levels.current;
     const canvasW = game.canvas.width;
     const canvasH = game.canvas.height;
+    this._ps = game.scale;
 
     this.color = options.color ?? "white";
     this.width = options.width ?? 12;
@@ -85,22 +88,22 @@ export class Falcon9 implements Entity {
     this._fuelConsumptionRate = level.fuelConsumptionRate;
     this.enginePower = level.enginePower;
     this.canReignite = level.canReignite;
-    this.maxLandingVelocity = level.maxLandingVelocity;
+    this.maxLandingVelocity = level.maxLandingVelocity * this._ps;
 
     // Apply optional level spawn overrides
     if (level.initialAngle !== undefined) this.angle = level.initialAngle;
     if (level.initialSpin  !== undefined) this.rotationalMomentum = level.initialSpin;
     if (level.initialVelocity !== undefined) {
-      const { x, y, xPerWidth, yPerHeight } = level.initialVelocity;
+      const { x, y, xPerWidth, xPerHeight, yPerHeight } = level.initialVelocity;
       this.velocity = new Vector2(
-        xPerWidth !== undefined ? canvasW * xPerWidth : (x ?? this.velocity.x),
+        xPerHeight !== undefined ? canvasH * xPerHeight : (xPerWidth !== undefined ? canvasW * xPerWidth : (x ?? this.velocity.x)),
         yPerHeight !== undefined ? canvasH * yPerHeight : (y ?? this.velocity.y),
       );
     }
     if (level.initialPosition !== undefined) {
-      const { x, y, xRatio, yRatio } = level.initialPosition;
+      const { x, y, xRatio, yRatio, xPerHeight } = level.initialPosition;
       this.position = new Vector2(
-        xRatio !== undefined ? canvasW * xRatio : (x ?? this.position.x),
+        xPerHeight !== undefined ? canvasH * xPerHeight : (xRatio !== undefined ? canvasW * xRatio : (x ?? this.position.x)),
         yRatio !== undefined ? canvasH * yRatio : (y ?? this.position.y),
       );
     }
@@ -180,8 +183,10 @@ export class Falcon9 implements Entity {
       );
     }
 
-    this._updateAngle(t, leftActive, rightActive, level.gravity, boosterActive);
-    this._updateVelocity(t, boosterActive, level.gravity, level.minThrottle ?? this.enginePower);
+    const scaledGravity = level.gravity * this._ps;
+    const scaledThrust = (level.minThrottle ?? this.enginePower) * this._ps;
+    this._updateAngle(t, leftActive, rightActive, scaledGravity, boosterActive);
+    this._updateVelocity(t, boosterActive, scaledGravity, scaledThrust);
     this._updatePosition(t, game);
 
     // Smooth TVC gimbal angle: ±0.2 rad scaled by net thruster input
@@ -194,7 +199,7 @@ export class Falcon9 implements Entity {
     // scaled by airspeed so fins visually flatten out at low speed.
     const FIN_MAX = 0.45;
     const airspeed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
-    const finAuthority = boosterActive ? 1.0 : Math.min(airspeed / GRID_FIN_REF_SPEED, 1.0);
+    const finAuthority = boosterActive ? 1.0 : Math.min(airspeed / (GRID_FIN_REF_SPEED * this._ps), 1.0);
     const targetFin = FIN_MAX * netSteer * finAuthority;
     this._gridFinAngle += (targetFin - this._gridFinAngle) * Math.min(1, dt / 60);
 
@@ -210,7 +215,7 @@ export class Falcon9 implements Entity {
   private _updateAngle(t: number, leftActive: number, rightActive: number, gravity: number, boosterActive: boolean): void {
     ({ angle: this.angle, rotMomentum: this.rotationalMomentum } = stepAngle(
       this.angle, this.rotationalMomentum, t, leftActive, rightActive, gravity, this.dragCoefficient,
-      boosterActive, this.velocity.x, this.velocity.y,
+      boosterActive, this.velocity.x, this.velocity.y, this._ps,
     ));
   }
 
@@ -241,7 +246,7 @@ export class Falcon9 implements Entity {
         ? true
         : (() => {
           const centerX = level.landingPad.centerX ?? game.canvas.width / 2;
-          const half = level.landingPad.width / 2;
+          const half = (level.landingPad.width * this._ps) / 2;
           return this.position.x >= centerX - half && this.position.x <= centerX + half;
         })();
 
@@ -485,8 +490,8 @@ export class Falcon9 implements Entity {
   private _drawCheaterOverlay(ctx: CanvasRenderingContext2D, game: GameEngine): void {
     ctx.save();
     ctx.resetTransform();
-    const cw = game.canvas.width;
-    const ch = game.canvas.height;
+    const cw = game.width;
+    const ch = game.height;
 
     // Dark vignette
     ctx.fillStyle = "rgba(139,0,0,0.35)";

@@ -24,7 +24,6 @@ const WORLD_SPAN = WORLD_RIGHT - WORLD_LEFT;
 export class MoonSurface implements Entity {
   private _craters: Crater[] = [];
   private _rocks: Rock[] = [];
-
   constructor(game: GameEngine) {
     this._generate();
     game.groundY = game.canvas.height - SURFACE_HEIGHT;

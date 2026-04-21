@@ -31,7 +31,7 @@ export const LEVELS: LevelData[] = [
       canReignite: true,
       maxLandingVelocity: 5.0,
       initialAngle: 0,
-      initialVelocity: { x: 0, y: 0.8 },
+      initialVelocity: { x: 0, yPerHeight: 0.00133 },
     },
     starter: `\
 // Level 0 — Tutorial: Fly with Your Keyboard
@@ -63,6 +63,7 @@ falcon9.registerController(() => {
 // Level 0 — Tutorial (auto-pilot)
 // Here's what a simple automatic controller looks like.
 // It keeps the ship upright and slows the descent — no keyboard needed!
+const s_0 = game.scale;
 falcon9.registerController(() => {
   // Keep the ship upright using a PD controller
   const error = falcon9.angle + falcon9.rotationalMomentum * 5;
@@ -70,7 +71,7 @@ falcon9.registerController(() => {
   falcon9.rotateRight = error < -0.05;
 
   // Fire the booster to slow descent when roughly upright
-  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.3 && falcon9.velocity.y > 1.0;
+  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.3 && falcon9.velocity.y > 1.0 * s_0;
 });
 `,
   },
@@ -86,7 +87,7 @@ falcon9.registerController(() => {
       canReignite: true,
       maxLandingVelocity: 3.0,
       initialAngle: 0,
-      initialVelocity: { x: 0.05, y: 1.5 },
+      initialVelocity: { xPerWidth: 0.0000625, yPerHeight: 0.0025 },
     },
     starter: `\
 // Level 1 — Hello, Moon
@@ -112,6 +113,7 @@ falcon9.registerController(() => {
     solution: `\
 // Level 1 — Hello, Moon (solution)
 // Fire booster whenever descending too fast; correct tilt with side thrusters.
+const s_1 = game.scale;
 falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
@@ -120,7 +122,7 @@ falcon9.registerController(() => {
   falcon9.rotateLeft  = angle > 0.05 || spin > 0.5;
   falcon9.rotateRight = angle < -0.05 || spin < -0.5;
 
-  falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0;
+  falcon9.fireBoosterEngine = falcon9.velocity.y > 1.0 * s_1;
 });
 `,
   },
@@ -137,7 +139,7 @@ falcon9.registerController(() => {
       maxLandingVelocity: 2.0,
       initialAngle: 0.4,
       initialSpin: 0,
-      initialVelocity: { x: 0.2, y: 0.2 },
+      initialVelocity: { xPerWidth: 0.00025, yPerHeight: 0.000333 },
       initialPosition: { yRatio: 0.13 },
     },
     starter: `\
@@ -166,6 +168,7 @@ falcon9.registerController(() => {
     solution: `\
 // Level 2 — Tilted (solution)
 // PD controller: correct angle and damp spin, then manage descent
+const s_2 = game.scale;
 falcon9.registerController(() => {
   const angle = falcon9.angle;
   const spin  = falcon9.rotationalMomentum;
@@ -173,7 +176,7 @@ falcon9.registerController(() => {
 
   falcon9.rotateLeft  = error > 0.05;
   falcon9.rotateRight = error < -0.05;
-  falcon9.fireBoosterEngine = Math.abs(angle) < 0.3 && falcon9.velocity.y > 0.8;
+  falcon9.fireBoosterEngine = Math.abs(angle) < 0.3 && falcon9.velocity.y > 0.8 * s_2;
 });
 `,
   },
@@ -190,8 +193,8 @@ falcon9.registerController(() => {
       maxLandingVelocity: 1.5,
       initialAngle: 0,
       initialSpin: 0.1,
-      initialVelocity: { x: 0, y: 0.4 },
-      initialPosition: { x: 400, y: 100 },
+      initialVelocity: { x: 0, yPerHeight: 0.000667 },
+      initialPosition: { xRatio: 0.5, yRatio: 0.167 },
     },
     starter: `\
 // Level 3 — Steady the Ship
@@ -216,13 +219,14 @@ falcon9.registerController(() => {
 `,
     solution: `\
 // Level 3 — Steady the Ship (solution)
+const s_3 = game.scale;
 falcon9.registerController(() => {
   const error = falcon9.angle + falcon9.rotationalMomentum * 8;
 
   falcon9.rotateLeft  = error > 0.04;
   falcon9.rotateRight = error < -0.04;
   // Only thrust when reasonably upright and falling faster than 0.5
-  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.4 && falcon9.velocity.y > 0.5;
+  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.4 && falcon9.velocity.y > 0.5 * s_3;
 });
 `,
   },
@@ -239,8 +243,8 @@ falcon9.registerController(() => {
       maxLandingVelocity: 1.0,
       initialAngle: 0,
       initialSpin: 0,
-      initialVelocity: { x: 1.0, y: 0.3 },
-      initialPosition: { x: 400, y: 80 },
+      initialVelocity: { xPerWidth: 0.00125, yPerHeight: 0.0005 },
+      initialPosition: { xRatio: 0.5, yRatio: 0.133 },
     },
     starter: `\
 // Level 4 — Lateral Drift
@@ -267,21 +271,20 @@ falcon9.registerController(() => {
 // Level 4 — Lateral Drift (solution)
 // Cancel horizontal velocity by tilting into it; the tilted engine reduces
 // both vx and vy simultaneously.
+const s_4 = game.scale;
 falcon9.registerController(() => {
   const vx = falcon9.velocity.x;
   const vy = falcon9.velocity.y;
 
   // Drive angle proportional to lateral drift: negative angle thrusts left.
-  const targetAngle = Math.max(-0.5, Math.min(0.5, -vx * 0.5));
+  const targetAngle = Math.max(-0.5, Math.min(0.5, -vx * 0.5 / s_4));
   const error = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
 
   falcon9.rotateLeft  = error > 0.05;
   falcon9.rotateRight = error < -0.05;
 
-  // Budget the landing velocity: |vx| + |vy| must be < 1.0.
-  // Brake earlier when lateral drift is still significant so the combined
-  // speed is within budget regardless of remaining horizontal component.
-  const vyThreshold = Math.max(0.3, 0.85 - Math.abs(vx));
+  // Budget the landing velocity: |vx| + |vy| must be < maxLandingVelocity.
+  const vyThreshold = Math.max(0.3 * s_4, 0.85 * s_4 - Math.abs(vx));
   falcon9.fireBoosterEngine = Math.abs(error) < 0.4 && vy > vyThreshold;
 });
 `,
@@ -299,8 +302,8 @@ falcon9.registerController(() => {
       maxLandingVelocity: 1.0,
       landingPad: { width: 80 },
       initialAngle: 0.1,
-      initialVelocity: { x: 0.2, y: 0.3 },
-      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
+      initialVelocity: { xPerWidth: 0.00025, yPerHeight: 0.0005 },
+      initialPosition: { yRatio: 0.5 },
     },
     starter: `\
 // Level 5 — Bullseye
@@ -309,11 +312,11 @@ falcon9.registerController(() => {
 //
 // Useful readings:
 //   falcon9.position.x  — current horizontal position
-//   game.canvas.width   — total canvas width
-// The pad centre is at canvas.width / 2.
+//   game.width          — total canvas width
+// The pad centre is at game.width / 2.
 
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;
+  const padX = game.width / 2;
   const dx   = falcon9.position.x - padX; // positive = right of pad
 
   // TODO: steer toward the pad while managing velocity
@@ -327,8 +330,9 @@ falcon9.registerController(() => {
 // The ship spawns directly above the pad but with a rightward drift.
 // A PD controller maps position error and lateral velocity directly onto a
 // target tilt angle — no inner velocity loop needed.
+const s_5 = game.scale;
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;   // pad is always at canvas centre
+  const padX = game.width / 2;   // pad is always at canvas centre
   const err  = padX - falcon9.position.x;  // +ve = pad is right of ship
   const vx   = falcon9.velocity.x;
   const vy   = falcon9.velocity.y;
@@ -336,7 +340,7 @@ falcon9.registerController(() => {
   // Positive angle → sin(angle) > 0 → engine thrusts rightward.
   // kp drives toward the pad; kd damps lateral velocity to prevent overshoot.
   const targetAngle = Math.max(-0.4, Math.min(0.4,
-    err * 0.004 - vx * 2.0
+    (err * 0.004 - vx * 2.0) / s_5
   ));
 
   const angleError = falcon9.angle - targetAngle + falcon9.rotationalMomentum * 5;
@@ -344,7 +348,7 @@ falcon9.registerController(() => {
   falcon9.rotateRight = angleError < -0.05;
 
   // Brake vertical descent whenever the rocket is nearly upright
-  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35;
+  falcon9.fireBoosterEngine = Math.abs(falcon9.angle) < 0.45 && vy > 0.35 * s_5;
 });
 `,
   },
@@ -361,8 +365,8 @@ falcon9.registerController(() => {
       maxLandingVelocity: 1.0,
       landingPad: { width: 80 },
       initialAngle: 0.1,
-      initialVelocity: { x: 0, y: 0.2 },
-      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
+      initialVelocity: { x: 0, yPerHeight: 0.000333 },
+      initialPosition: { yRatio: 0.5 },
     },
     starter: `\
 // Level 6 — On a Budget
@@ -375,7 +379,7 @@ falcon9.registerController(() => {
 // and avoid running the booster continuously.
 
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;
+  const padX = game.width / 2;
   const dx   = falcon9.position.x - padX;
 
   // TODO: efficient controller with fuel awareness
@@ -388,8 +392,9 @@ falcon9.registerController(() => {
 // Level 6 — On a Budget (solution)
 // Stopping-distance latch: let the ship free-fall, fire ONE braking window.
 // This minimises fuel use compared to a continuous hover controller.
-const NET_DECEL_6 = 0.04 - 0.010; // enginePower - gravity
-const TARGET_VY_6 = 0.55;
+const s_6 = game.scale;
+const NET_DECEL_6 = (0.04 - 0.010) * s_6;
+const TARGET_VY_6 = 0.55 * s_6;
 let   burning_6   = false;
 
 falcon9.registerController(() => {
@@ -403,7 +408,7 @@ falcon9.registerController(() => {
 
   // Latch burn once stopping distance reaches remaining altitude.
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_6 * TARGET_VY_6) / (2 * NET_DECEL_6);
-  if (!burning_6 && alt <= stoppingDist * 1.2 + 5 && vy > TARGET_VY_6) { burning_6 = true; }
+  if (!burning_6 && alt <= stoppingDist * 1.2 + 5 * s_6 && vy > TARGET_VY_6) { burning_6 = true; }
   if ( burning_6 && vy <= TARGET_VY_6) { burning_6 = false; }
   falcon9.fireBoosterEngine = burning_6 && Math.abs(falcon9.angle) < 0.45;
 });
@@ -423,8 +428,8 @@ falcon9.registerController(() => {
       landingPad: { width: 60 },
       minThrottle: 0.06,
       initialAngle: 0,
-      initialVelocity: { x: 0, y: 0.3 },
-      initialPosition: { y: 300 },   // x defaults to canvas centre (= pad centre)
+      initialVelocity: { x: 0, yPerHeight: 0.0005 },
+      initialPosition: { yRatio: 0.5 },
     },
     starter: `\
 // Level 7 — Minimum Power
@@ -435,7 +440,7 @@ falcon9.registerController(() => {
 // Strategy: use short timed burns; let momentum carry you between pulses.
 
 falcon9.registerController(() => {
-  const padX = game.canvas.width / 2;
+  const padX = game.width / 2;
   const dx   = falcon9.position.x - padX;
   const vy   = falcon9.velocity.y;
 
@@ -448,10 +453,9 @@ falcon9.registerController(() => {
     solution: `\
 // Level 7 — Minimum Power (solution)
 // Stopping-distance latch — let the ship fall freely, then fire ONE braking window.
-// With minThrottle the engine fires full-power pulses; a single well-timed
-// window uses far less fuel than continuous hovering.
-const NET_DECEL_7 = 0.06 - 0.010; // minThrottle - gravity
-const TARGET_VY_7 = 0.5;
+const s_7 = game.scale;
+const NET_DECEL_7 = (0.06 - 0.010) * s_7;
+const TARGET_VY_7 = 0.5 * s_7;
 let   burning_7   = false;
 
 falcon9.registerController(() => {
@@ -465,7 +469,7 @@ falcon9.registerController(() => {
 
   // Latch: ignite once when stopping distance meets remaining altitude.
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_7 * TARGET_VY_7) / (2 * NET_DECEL_7);
-  if (!burning_7 && alt <= stoppingDist * 1.15 + 5 && vy > TARGET_VY_7) { burning_7 = true; }
+  if (!burning_7 && alt <= stoppingDist * 1.15 + 5 * s_7 && vy > TARGET_VY_7) { burning_7 = true; }
   if ( burning_7 && vy <= TARGET_VY_7) { burning_7 = false; }
   falcon9.fireBoosterEngine = burning_7 && Math.abs(falcon9.angle) < 0.4;
 });
@@ -486,8 +490,8 @@ falcon9.registerController(() => {
       minThrottle: 0.07,
       initialAngle: 0,
       initialSpin: 0.05,
-      initialVelocity: { x: 0, y: 1.5 },
-      initialPosition: { y: 150 },
+      initialVelocity: { x: 0, yPerHeight: 0.0025 },
+      initialPosition: { yRatio: 0.25 },
     },
     starter: `\
 // Level 8 — Precision Burn
@@ -504,7 +508,8 @@ falcon9.registerController(() => {
 // Strategy: latch ignition when stopping distance ≈ altitude,
 //           then let the burn continue until vy is very low.
 
-const NET_DECEL = 0.07 - 0.010;
+const s_s8 = game.scale;
+const NET_DECEL = (0.07 - 0.010) * s_s8;
 const TARGET_VY = /* aim lower than you think — gravity still acts after the burn */;
 let   burning   = false;
 
@@ -525,8 +530,9 @@ falcon9.registerController(() => {
     solution: `\
 // Level 8 — Precision Burn (solution)
 // canReignite = false: burn to a very low vy so residual fall velocity stays within budget.
-const NET_DECEL_8 = 0.07 - 0.010;
-const TARGET_VY_8 = 0.1;   // burn deep — gravity adds ~0.5 after the engine cuts
+const s_8 = game.scale;
+const NET_DECEL_8 = (0.07 - 0.010) * s_8;
+const TARGET_VY_8 = 0.1 * s_8;
 let   burning_8   = false;
 
 falcon9.registerController(() => {
@@ -538,7 +544,7 @@ falcon9.registerController(() => {
   falcon9.rotateRight = angleError < -0.07;
 
   const stoppingDist = Math.max(0, vy * vy - TARGET_VY_8 * TARGET_VY_8) / (2 * NET_DECEL_8);
-  if (!burning_8 && alt <= stoppingDist * 1.15 + 3 && vy > TARGET_VY_8) { burning_8 = true; }
+  if (!burning_8 && alt <= stoppingDist * 1.15 + 3 * s_8 && vy > TARGET_VY_8) { burning_8 = true; }
   if ( burning_8 && vy <= TARGET_VY_8) { burning_8 = false; }
   falcon9.fireBoosterEngine = burning_8 && Math.abs(falcon9.angle) < 0.3;
 });
@@ -559,8 +565,8 @@ falcon9.registerController(() => {
       minThrottle: 0.08,
       initialAngle: 0,
       initialSpin: 0.08,
-      initialPosition: { y: 40 },
-      initialVelocity: { x: 0, y: 2.0 },
+      initialPosition: { yRatio: 0.067 },
+      initialVelocity: { x: 0, yPerHeight: 0.00333 },
     },
     starter: `\
 // Level 9 — The Long Fall
@@ -576,7 +582,8 @@ falcon9.registerController(() => {
 // altitude and fall dynamics. Hint: think about how fast gravity accelerates
 // you after the engine cuts, and how far you still fall.
 
-const NET_DECEL = 0.08 - 0.010;
+const s_s9 = game.scale;
+const NET_DECEL = (0.08 - 0.010) * s_s9;
 let   burning   = false;
 
 falcon9.registerController(() => {
@@ -596,8 +603,9 @@ falcon9.registerController(() => {
     solution: `\
 // Level 9 — The Long Fall (solution)
 // Use a tighter TARGET_VY to account for post-burn gravity acceleration.
-const NET_DECEL_9 = 0.08 - 0.010;
-const TARGET_VY_9 = 0.05;  // burn almost to a stop
+const s_9 = game.scale;
+const NET_DECEL_9 = (0.08 - 0.010) * s_9;
+const TARGET_VY_9 = 0.05 * s_9;
 let   burning_9   = false;
 
 falcon9.registerController(() => {
@@ -630,17 +638,16 @@ falcon9.registerController(() => {
       enginePower: 0.10,
       canReignite: false,
       maxLandingVelocity: 0.5,
-      // Stick the landing upright — tilt more than ~8.6° at touchdown snaps a leg.
-      maxLandingAngle: 0.15,
-      landingPad: { width: 110 },
+      // Stick the landing upright — tilt more than ~17° at touchdown snaps a leg.
+      maxLandingAngle: 0.30,
+      landingPad: { width: 80 },
       minThrottle: 0.10,
       initialAngle: 0.0,
       initialSpin: 0.2,
-      // Spawn in the upper-right with a leftward lateral velocity scaled to
-      // canvas width, so on every screen size the rocket carves a long
-      // parabolic arc across the sky toward the landing pad at canvas centre.
-      initialPosition: { xRatio: 0.80, y: 50 },
-      initialVelocity: { xPerWidth: -0.0012, y: 1.5 },
+      // Spawn in the upper-right with a leftward lateral velocity. Both
+      // scale proportionally so the parabolic arc shape is consistent.
+      initialPosition: { xRatio: 0.65, yRatio: 0.083 },
+      initialVelocity: { xPerWidth: -0.0008, yPerHeight: 0.0025 },
     },
     starter: `\
 // Level 10 — Hoverslam
@@ -681,9 +688,10 @@ falcon9.registerController(() => {
 //   falcon9.angle              — tilt in radians (+ = right)
 //   falcon9.rotationalMomentum — spin rate (residual tumble)
 
-const ENGINE    = 0.10;
-const GRAVITY   = 0.010;
-const TARGET_VY = /* try -0.20 */ 0;
+const s_s10     = game.scale;
+const ENGINE    = 0.10 * s_s10;
+const GRAVITY   = 0.010 * s_s10;
+const TARGET_VY = /* try -0.20 * s_s10 */ 0;
 let   burning   = false;
 let   burnDone  = false;
 
@@ -726,9 +734,10 @@ falcon9.registerController(() => {
 //
 // Proportional thruster control (0–1) gives smoother TVC steering than
 // bang-bang, reducing angular oscillation during the critical burn phase.
-const ENGINE_10    = 0.10;
-const GRAVITY_10   = 0.010;
-const TARGET_VY_10 = -0.20;   // burn slightly past stop; coast under gravity
+const s_10         = game.scale;
+const ENGINE_10    = 0.10 * s_10;
+const GRAVITY_10   = 0.010 * s_10;
+const TARGET_VY_10 = -0.20 * s_10;
 let   burning_10   = false;
 let   burnDone_10  = false;
 
@@ -737,26 +746,14 @@ falcon9.registerController(() => {
   const vy  = falcon9.velocity.y;
   const alt = falcon9.altitude;
 
-  // Gravity-corrected kill angle: -atan2(vx × (E-g)/E, vy - TARGET_VY).
-  // The 2.5 floor on the denom keeps the tilt modest even as vy shrinks,
-  // so the rocket is already close to vertical when the burn ends.
-  // Once burnDone, target angle 0 for the coast phase (grid fins are weak
-  // at low airspeed, but the rocket is already nearly upright).
   const burnAngle = burnDone_10 ? 0 : Math.max(-0.50, Math.min(0.50,
-    -Math.atan2(vx * 0.9, Math.max(vy - TARGET_VY_10, 2.5))));
+    -Math.atan2(vx * 0.9, Math.max(vy - TARGET_VY_10, 2.5 * s_10))));
   const angleError = falcon9.angle - burnAngle + falcon9.rotationalMomentum * 1.2;
-  // Proportional thruster output: scales linearly with angle error for
-  // smooth TVC steering during the burn. Disabled after cutoff — grid fins
-  // have negligible authority at low coast speed.
   const thrust = burnDone_10 ? 0 : Math.min(1, Math.abs(angleError) * 50);
   falcon9.rotateLeft  = angleError > 0 ? thrust : 0;
   falcon9.rotateRight = angleError < 0 ? thrust : 0;
 
-  // Ignite at the kinematic stopping altitude. Vertical decel during the
-  // burn is averaged between start (tilted) and end (upright) to reduce
-  // overestimation of stopping distance — the burn straightens as vx is
-  // killed, so actual decel increases throughout the manoeuvre.
-  const aNetStart = Math.max(0.005, ENGINE_10 * Math.cos(burnAngle) - GRAVITY_10);
+  const aNetStart = Math.max(0.005 * s_10, ENGINE_10 * Math.cos(burnAngle) - GRAVITY_10);
   const aNetEnd   = ENGINE_10 - GRAVITY_10;
   const aNet      = (aNetStart + aNetEnd) / 2;
   const stopAlt = Math.max(0, vy * vy - TARGET_VY_10 * TARGET_VY_10) / (2 * aNet);

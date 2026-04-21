@@ -14,8 +14,10 @@ export class LandingPad implements Entity {
     const pad = game.levels.current.landingPad;
     if (pad === undefined) return;
 
+    const s = game.scale;
     const centerX = pad.centerX ?? game.canvas.width / 2;
-    const halfW = pad.width / 2;
+    const padW = pad.width * s;
+    const halfW = padW / 2;
     const padY = game.groundY;
     const padH = 4;
 
@@ -23,7 +25,7 @@ export class LandingPad implements Entity {
     ctx.shadowColor = "#58a6ff";
     ctx.shadowBlur = 14;
     ctx.fillStyle = "#58a6ff";
-    ctx.fillRect(centerX - halfW, padY - padH, pad.width, padH);
+    ctx.fillRect(centerX - halfW, padY - padH, padW, padH);
     // Edge marker poles
     ctx.shadowBlur = 0;
     ctx.fillStyle = "#e6edf3";
