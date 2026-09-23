@@ -6,6 +6,26 @@ A 2D simulation game where you program rocket boosters to land.
 
 ![Mar-10-2023 07-06-40](https://raw.githubusercontent.com/imaustink/lander/refs/heads/main/img/gameplay.png)
 
+## Levels
+
+The game currently ships with **11 levels** (0–10), each introducing a new mechanic:
+
+| # | Name | Focus |
+|---|------|-------|
+| 0 | Tutorial | Fly with your keyboard |
+| 1 | Hello, Moon | Basic descent control |
+| 2 | Tilted | Correcting starting angle |
+| 3 | Steady the Ship | PD control for angle + descent |
+| 4 | Lateral Drift | Cancelling horizontal velocity |
+| 5 | Bullseye | Landing on a target pad |
+| 6 | On a Budget | Limited fuel |
+| 7 | Minimum Power | Bang-bang thrust (no throttle) |
+| 8 | Precision Burn | Single, non-reignitable engine burn |
+| 9 | The Long Fall | Precision burn from higher altitude |
+| 10 | Hoverslam | Single-burn landing with upright touchdown constraint |
+
+See [`app/src/levels.ts`](app/src/levels.ts) for the full level configs, starter code, and reference solutions.
+
 ## Getting Started
 
 ### Play Online
